@@ -19,13 +19,20 @@ REACT_APP_API_URL=http://localhost:8000
 Create a file `backend/.env` with your credentials:
 
 ```env
-MONGODB_URI=mongodb+srv://daniyalareeb123_db_user:YOUR_PASSWORD@dailyquestions.sbaa1vt.mongodb.net/?appName=DailyQuestions
+MONGODB_URI=your_mongodb_connection_string_here
 MONGODB_DBNAME=daily_questions
 FIREBASE_CREDENTIALS_PATH=app/dailyquestion-fcbae-firebase-adminsdk-fbsvc-282e703108.json
 RESEND_API_KEY=your_resend_key_here
 REMINDER_TIME=20:00
 ENVIRONMENT=development
 ```
+
+**To get MongoDB Atlas connection string:**
+1. Go to https://www.mongodb.com/cloud/atlas
+2. Create a free cluster
+3. Click "Connect" → "Connect your application"
+4. Copy the connection string
+5. Replace `<password>` with your actual database password
 
 ## Important Notes
 
