@@ -3,12 +3,12 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDp1uTI-BhRtGMIOCW5qKr04JpHrAaIOnE",
-  authDomain: "dailyquestion-fcbae.firebaseapp.com",
-  projectId: "dailyquestion-fcbae",
-  storageBucket: "dailyquestion-fcbae.appspot.com",
-  messagingSenderId: "668300380437",
-  appId: "1:668300380437:web:dailyquestion-fcbae"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || "dailyquestion-fcbae.firebaseapp.com",
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "dailyquestion-fcbae",
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "dailyquestion-fcbae.appspot.com",
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || "668300380437",
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || "1:668300380437:web:dailyquestion-fcbae"
 };
 
 // Initialize Firebase
