@@ -57,19 +57,22 @@ async def seed_questions():
 @router.get("/", response_model=List[Question])
 async def get_all_questions(randomize: bool = False):
     """Get all questions, optionally randomized"""
-    await seed_questions()
-    
-    cursor = questions_collection.find().sort("order", 1)
-    questions = await cursor.to_list(length=None)
-    
-    # Convert MongoDB _id to id for Pydantic model
-    for question in questions:
-        question["id"] = question.pop("_id")
-    
-    if randomize:
-        random.shuffle(questions)
-    
-    return questions
+    try:
+        await seed_questions()
+        
+        cursor = questions_collection.find().sort("order", 1)
+        questions = await cursor.to_list(length=None)
+        
+        # Convert MongoDB _id to id for Pydantic model
+        for question in questions:
+            question["id"] = question.pop("_id")
+        
+        if randomize:
+            random.shuffle(questions)
+        
+        return questions
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch questions: {str(e)}")
 
 @router.get("/{question_id}", response_model=Question)
 async def get_question_by_id(question_id: str):
