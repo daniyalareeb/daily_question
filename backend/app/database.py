@@ -5,7 +5,16 @@ from app.config import MONGODB_URI, MONGODB_DBNAME
 if not MONGODB_URI:
     raise ValueError("MONGODB_URI environment variable is not set")
 
-client = AsyncIOMotorClient(MONGODB_URI)
+# Connect with explicit TLS/SSL configuration for better compatibility
+# This helps with SSL handshake issues on cloud platforms like Render
+client = AsyncIOMotorClient(
+    MONGODB_URI,
+    tls=True,  # Explicitly enable TLS
+    tlsAllowInvalidCertificates=False,  # Use valid certificates
+    serverSelectionTimeoutMS=30000,  # 30 seconds timeout
+    connectTimeoutMS=30000,
+    retryWrites=True
+)
 db = client[MONGODB_DBNAME]
 
 # collection names
