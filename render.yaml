@@ -2,7 +2,9 @@ services:
   - type: web
     name: daily-questions-backend
     env: python
-    buildCommand: pip install -r requirements.txt
+    plan: free
+    pythonVersion: 3.11.0
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     rootDir: backend
     envVars:
@@ -10,8 +12,8 @@ services:
         sync: false
       - key: MONGODB_DBNAME
         value: daily_questions
-      - key: FIREBASE_CREDENTIALS_PATH
-        value: app/dailyquestion-fcbae-firebase-adminsdk-fbsvc-282e703108.json
+      - key: FIREBASE_CREDENTIALS_JSON
+        sync: false
       - key: RESEND_API_KEY
         sync: false
       - key: REMINDER_TIME

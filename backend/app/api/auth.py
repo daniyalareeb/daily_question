@@ -2,13 +2,22 @@ import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth
 from fastapi import Depends, HTTPException, APIRouter
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from app.config import FIREBASE_CREDENTIALS_PATH
+from app.config import FIREBASE_CREDENTIALS_PATH, FIREBASE_CREDENTIALS_JSON
+import json
 
 # Initialize Firebase Admin SDK
 try:
     # Check if Firebase app is already initialized
     if not firebase_admin._apps:
-        cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+        # Try to use environment variable (for Render deployment)
+        if FIREBASE_CREDENTIALS_JSON:
+            cred_dict = json.loads(FIREBASE_CREDENTIALS_JSON)
+            cred = credentials.Certificate(cred_dict)
+        # Fallback to file path (for local development)
+        elif FIREBASE_CREDENTIALS_PATH:
+            cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+        else:
+            raise Exception("No Firebase credentials provided")
         firebase_admin.initialize_app(cred)
 except Exception as e:
     print(f"Firebase initialization error: {e}")

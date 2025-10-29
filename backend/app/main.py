@@ -14,12 +14,12 @@ app = FastAPI(title="Daily Questions")
 origins = [
     "http://localhost:3000",  # React frontend development server
     "http://localhost:8000",  # Backend server (for API docs)
-    "https://*.vercel.app",  # Vercel deployment
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://.*\.(vercel\.app|onrender\.com)",  # Vercel and Render deployments
     allow_credentials=True,  # Allows cookies/auth headers
     allow_methods=["*"],      # Allows all HTTP methods (GET, POST, etc.)
     allow_headers=["*"],      # Allows all headers (Authorization, Content-Type, etc.)
