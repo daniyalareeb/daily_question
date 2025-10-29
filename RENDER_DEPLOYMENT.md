@@ -38,7 +38,8 @@
    In Render dashboard, add these environment variables:
    
    - `MONGODB_URI`: Your MongoDB Atlas connection string
-     - Example: `mongodb+srv://username:password@cluster.mongodb.net/`
+     - Get this from MongoDB Atlas dashboard → Connect → Connect your application
+     - Example format: `mongodb+srv://[username]:[password]@cluster.mongodb.net/`
    
    - `MONGODB_DBNAME`: `daily_questions`
    
@@ -110,8 +111,9 @@ If you prefer manual setup:
 
 ### MongoDB
 - Use MongoDB Atlas for free MongoDB hosting
-- Connection string format: `mongodb+srv://user:pass@cluster.mongodb.net/dbname`
+- Connection string format: `mongodb+srv://[username]:[password]@cluster.mongodb.net/dbname`
 - Whitelist Render's IP ranges in MongoDB Atlas (0.0.0.0/0 for development)
+- Never share your actual credentials
 
 ## Troubleshooting
 
