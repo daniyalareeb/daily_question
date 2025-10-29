@@ -14,13 +14,27 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('firebaseToken');
+    const token = localStorage.getItem('jwtToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Handle 401 responses (unauthorized) - token invalid or expired
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token is invalid or expired, clear it
+      localStorage.removeItem('jwtToken');
+      // Optionally redirect to login (commented out to avoid breaking app flow)
+      // window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );
@@ -79,6 +93,12 @@ export const apiService = {
   },
 
   // Auth
+  login: (email, password) =>
+    api.post('/api/auth/login', { email, password }),
+  
+  register: (email, password) =>
+    api.post('/api/auth/register', { email, password }),
+  
   verifyToken: () => 
     api.get('/api/auth/verify'),
   

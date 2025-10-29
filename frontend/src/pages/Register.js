@@ -47,7 +47,9 @@ function Register() {
       await signup(email, password);
       navigate('/questions');
     } catch (err) {
-      setError('Failed to create account. Email might already be in use.');
+      // Extract error message from API response
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to create account. Email might already be in use.';
+      setError(errorMessage);
       console.error('Registration error:', err);
     } finally {
       setLoading(false);

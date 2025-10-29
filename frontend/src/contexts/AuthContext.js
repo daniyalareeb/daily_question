@@ -2,31 +2,33 @@
  * Authentication Context Provider
  * 
  * This React Context provides authentication state and functions to the entire app.
- * It wraps the Firebase authentication functionality and makes it available to all components.
+ * It uses backend API endpoints for authentication instead of Firebase SDK directly.
+ * All Firebase operations are handled securely on the backend.
  * 
  * Key Features:
- * - User sign-up: createUserWithEmailAndPassword()
- * - User sign-in: signInWithEmailAndPassword()
- * - User sign-out: signOut()
- * - Current user state: Tracks authenticated user or null
- * - Firebase token management: Gets and stores ID tokens for API calls
- * - Auto token refresh: Automatically updates tokens when they expire
+ * - User sign-up: Uses backend /api/auth/register endpoint
+ * - User sign-in: Uses backend /api/auth/login endpoint
+ * - User sign-out: Removes JWT token from localStorage
+ * - Current user state: Tracks authenticated user from JWT token
+ * - JWT token management: Stores JWT tokens in localStorage
+ * - Token verification: Verifies token with backend on app load
  * 
  * Critical Token Management:
- * - Stores Firebase ID token in localStorage key 'firebaseToken'
+ * - Stores JWT token in localStorage key 'jwtToken'
  * - Token is used by apiService to authenticate all backend API calls
- * - Token is refreshed automatically when user logs in or when token expires
+ * - Token is stored after successful login/register
  * - Token is removed when user logs out
  * 
  * Authentication Flow:
- * 1. User signs in/signs up via Firebase
- * 2. onAuthStateChanged callback fires when auth state changes
- * 3. If user exists, get ID token and store in localStorage
- * 4. apiService.interceptor automatically adds token to API requests
- * 5. Backend verifies token via Firebase Admin SDK
+ * 1. User signs in/signs up via backend API
+ * 2. Backend handles Firebase authentication server-side
+ * 3. Backend returns JWT token
+ * 4. Frontend stores JWT token in localStorage
+ * 5. apiService.interceptor automatically adds token to API requests
+ * 6. Backend verifies JWT token for protected endpoints
  * 
  * State Management:
- * - currentUser: Firebase user object or null
+ * - currentUser: User object with uid and email or null
  * - loading: Shows loading spinner while checking auth state
  * - Prevents rendering children until auth state is determined
  * 
@@ -37,19 +39,13 @@
  * - Dashboard, Questions, Profile: All require authentication
  * - apiService: Uses token for authenticated API calls
  * 
- * Dependencies:
- * - firebase.js: Provides the auth instance
- * - firebase/auth: Provides Firebase auth functions
- * - localStorage: Stores authentication tokens
+ * Security:
+ * - No Firebase credentials are stored in the frontend
+ * - All Firebase operations happen server-side
+ * - JWT tokens are used for authentication
  */
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged 
-} from 'firebase/auth';
-import { auth } from '../firebase';
+import { apiService } from '../services/api';
 
 const AuthContext = createContext();
 
@@ -58,7 +54,7 @@ export function useAuth() {
    * Custom hook to access authentication context
    * 
    * Returns:
-   * { currentUser, login, signup, logout, getIdToken }
+   * { currentUser, login, signup, logout }
    * 
    * Usage in components:
    * const { currentUser, login, logout } = useAuth();
@@ -71,16 +67,50 @@ export function AuthProvider({ children }) {
    * Authentication Provider Component
    * 
    * Wraps the entire app to provide auth state to all components.
-   * Manages Firebase authentication lifecycle.
+   * Manages authentication lifecycle using backend API.
    */
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Verify token and get user info on mount
+  useEffect(() => {
+    const verifyAuth = async () => {
+      const token = localStorage.getItem('jwtToken');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await apiService.verifyToken();
+        if (response.data.valid && response.data.user) {
+          setCurrentUser(response.data.user);
+        } else {
+          localStorage.removeItem('jwtToken');
+        }
+      } catch (error) {
+        // Token invalid or expired
+        localStorage.removeItem('jwtToken');
+        setCurrentUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifyAuth();
+  }, []);
+
   // Sign up function
   async function signup(email, password) {
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      return result;
+      const response = await apiService.register(email, password);
+      const { access_token, user } = response.data;
+      
+      // Store JWT token
+      localStorage.setItem('jwtToken', access_token);
+      setCurrentUser(user);
+      
+      return { user, token: access_token };
     } catch (error) {
       throw error;
     }
@@ -89,8 +119,14 @@ export function AuthProvider({ children }) {
   // Sign in function
   async function login(email, password) {
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      return result;
+      const response = await apiService.login(email, password);
+      const { access_token, user } = response.data;
+      
+      // Store JWT token
+      localStorage.setItem('jwtToken', access_token);
+      setCurrentUser(user);
+      
+      return { user, token: access_token };
     } catch (error) {
       throw error;
     }
@@ -99,54 +135,18 @@ export function AuthProvider({ children }) {
   // Sign out function
   async function logout() {
     try {
-      await signOut(auth);
-      localStorage.removeItem('firebaseToken');
+      localStorage.removeItem('jwtToken');
+      setCurrentUser(null);
     } catch (error) {
       throw error;
     }
   }
 
-  // Get Firebase ID token
-  async function getIdToken() {
-    if (currentUser) {
-      try {
-        const token = await currentUser.getIdToken();
-        localStorage.setItem('firebaseToken', token);
-        return token;
-      } catch (error) {
-        console.error('Error getting ID token:', error);
-        return null;
-      }
-    }
-    return null;
-  }
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
-        try {
-          // Get and store the ID token
-          const token = await user.getIdToken();
-          localStorage.setItem('firebaseToken', token);
-        } catch (error) {
-          console.error('Error getting ID token:', error);
-        }
-      } else {
-        localStorage.removeItem('firebaseToken');
-      }
-      setLoading(false);
-    });
-
-    return unsubscribe;
-  }, []);
-
   const value = {
     currentUser,
     login,
     signup,
-    logout,
-    getIdToken
+    logout
   };
 
   return (

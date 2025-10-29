@@ -122,7 +122,7 @@ function Profile() {
                 {currentUser?.email}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Member since {formatDate(currentUser?.metadata?.creationTime)}
+                {currentUser?.email ? `Member` : ''}
               </Typography>
             </Box>
           </Box>
@@ -135,14 +135,6 @@ function Profile() {
                 <Email sx={{ mr: 1, color: 'text.secondary' }} />
                 <Typography variant="body2" color="text.secondary">
                   Email: {currentUser?.email}
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <CalendarToday sx={{ mr: 1, color: 'text.secondary' }} />
-                <Typography variant="body2" color="text.secondary">
-                  Last Sign In: {formatDate(currentUser?.metadata?.lastSignInTime)}
                 </Typography>
               </Box>
             </Grid>

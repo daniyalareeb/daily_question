@@ -5,14 +5,11 @@
 Create a file `frontend/.env.local` with these values:
 
 ```env
-REACT_APP_FIREBASE_API_KEY=AIzaSyDp1uTI-BhRtGMIOCW5qKr04JpHrAaIOnE
-REACT_APP_FIREBASE_AUTH_DOMAIN=dailyquestion-fcbae.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=dailyquestion-fcbae
-REACT_APP_FIREBASE_STORAGE_BUCKET=dailyquestion-fcbae.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=668300380437
-REACT_APP_FIREBASE_APP_ID=1:668300380437:web:dailyquestion-fcbae
+# Only the backend API URL is needed - Firebase is handled server-side
 REACT_APP_API_URL=http://localhost:8000
 ```
+
+**Note:** All Firebase credentials are now handled securely on the backend. The frontend does NOT need any Firebase credentials.
 
 ## Backend Setup
 
@@ -22,6 +19,10 @@ Create a file `backend/.env` with your credentials:
 MONGODB_URI=your_mongodb_connection_string_here
 MONGODB_DBNAME=daily_questions
 FIREBASE_CREDENTIALS_PATH=app/dailyquestion-fcbae-firebase-adminsdk-fbsvc-282e703108.json
+# OR use FIREBASE_CREDENTIALS_JSON with the full JSON content as an env variable (for Render/cloud deployments)
+# FIREBASE_CREDENTIALS_JSON={"type":"service_account",...}
+# Firebase Web API Key for password verification (required)
+FIREBASE_WEB_API_KEY=your_firebase_web_api_key
 RESEND_API_KEY=your_resend_key_here
 REMINDER_TIME=20:00
 ENVIRONMENT=development

@@ -32,35 +32,11 @@ Click "Environment Variables" and add:
 
 #### Required Variables
 
-1. **Backend API URL:**
+1. **Backend API URL (only required frontend env variable):**
    - **Name**: `REACT_APP_API_URL`
-   - **Value**: `https://daily-question.onrender.com`
+   - **Value**: `https://daily-question.onrender.com` (your backend URL)
 
-#### Firebase Configuration
-
-2. **Firebase API Key:**
-   - **Name**: `REACT_APP_FIREBASE_API_KEY`
-   - **Value**: `AIzaSyDp1uTI-BhRtGMIOCW5qKr04JpHrAaIOnE` (from your .env)
-
-3. **Firebase Auth Domain:**
-   - **Name**: `REACT_APP_FIREBASE_AUTH_DOMAIN`
-   - **Value**: `dailyquestion-fcbae.firebaseapp.com`
-
-4. **Firebase Project ID:**
-   - **Name**: `REACT_APP_FIREBASE_PROJECT_ID`
-   - **Value**: `dailyquestion-fcbae`
-
-5. **Firebase Storage Bucket:**
-   - **Name**: `REACT_APP_FIREBASE_STORAGE_BUCKET`
-   - **Value**: `dailyquestion-fcbae.appspot.com`
-
-6. **Firebase Messaging Sender ID:**
-   - **Name**: `REACT_APP_FIREBASE_MESSAGING_SENDER_ID`
-   - **Value**: `668300380437`
-
-7. **Firebase App ID:**
-   - **Name**: `REACT_APP_FIREBASE_APP_ID`
-   - **Value**: `1:668300380437:web:dailyquestion-fcbae`
+**Note:** All Firebase credentials are now handled securely on the backend. The frontend does NOT need any Firebase credentials. Authentication is done through backend API endpoints.
 
 ### 5. Deploy
 
@@ -98,13 +74,10 @@ So any Vercel domain will work!
 For easy copy-paste:
 
 ```
+# Only this variable is needed for frontend:
 REACT_APP_API_URL=https://daily-question.onrender.com
-REACT_APP_FIREBASE_API_KEY=AIzaSyDp1uTI-BhRtGMIOCW5qKr04JpHrAaIOnE
-REACT_APP_FIREBASE_AUTH_DOMAIN=dailyquestion-fcbae.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=dailyquestion-fcbae
-REACT_APP_FIREBASE_STORAGE_BUCKET=dailyquestion-fcbae.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=668300380437
-REACT_APP_FIREBASE_APP_ID=1:668300380437:web:dailyquestion-fcbae
+
+# All Firebase credentials are handled securely on the backend
 ```
 
 ## Troubleshooting

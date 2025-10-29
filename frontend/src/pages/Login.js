@@ -36,7 +36,9 @@ function Login() {
       await login(email, password);
       navigate('/questions');
     } catch (err) {
-      setError('Failed to log in. Please check your credentials.');
+      // Extract error message from API response
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to log in. Please check your credentials.';
+      setError(errorMessage);
       console.error('Login error:', err);
     } finally {
       setLoading(false);

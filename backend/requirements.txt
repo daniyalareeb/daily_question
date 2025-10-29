@@ -12,3 +12,4 @@ resend==0.8.0
 pywebpush==1.14.0
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+requests==2.31.0
