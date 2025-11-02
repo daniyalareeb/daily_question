@@ -38,5 +38,6 @@ Thumbs.db
 # Logs
 *.log
 
-# Firebase secrets
-backend/app/*firebase-adminsdk*.json
+# Firebase secrets (should not be committed)
+**/firebase-adminsdk*.json
+**/*firebase*.json

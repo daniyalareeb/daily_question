@@ -98,20 +98,26 @@ Frontend will be available at `http://localhost:3000`
 daily_question/
 ├── backend/
 │   ├── app/
-│   │   ├── api/          # API endpoints
-│   │   ├── crud/         # Database operations
-│   │   ├── models.py     # Data models
-│   │   ├── services/     # Business logic
-│   │   └── utils/        # Helper functions
-│   └── requirements.txt
+│   │   ├── api/          # API endpoints (auth, questions, responses, dashboard)
+│   │   ├── crud/         # Database operations layer
+│   │   ├── services/     # Business logic (NLP, analytics, reminders)
+│   │   ├── config.py     # Environment configuration
+│   │   ├── database.py   # MongoDB connection
+│   │   ├── main.py       # FastAPI application entry point
+│   │   └── models.py     # Pydantic data models
+│   ├── requirements.txt  # Python dependencies
+│   ├── setup.sh          # Local setup script
+│   └── start.sh          # Local development server script
 ├── frontend/
 │   ├── src/
-│   │   ├── components/   # React components
-│   │   ├── contexts/     # React contexts
+│   │   ├── components/   # Reusable React components
+│   │   ├── contexts/     # React context providers
 │   │   ├── pages/        # Page components
-│   │   └── services/     # API service
-│   └── package.json
-└── docs/                 # Documentation and templates
+│   │   └── services/     # API service layer
+│   ├── package.json      # Node dependencies
+│   └── start.sh         # Local development script
+├── docs/                 # Email templates and documentation
+└── render.yaml          # Render deployment configuration
 ```
 
 ## Deployment
