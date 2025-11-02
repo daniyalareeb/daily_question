@@ -247,8 +247,14 @@ async def forgot_password(request: ForgotPasswordRequest):
         
         # Add continueUrl if provided (will be included in reset email link)
         # This allows redirect to frontend after password reset
+        # Using continueUrl improves email deliverability by making links look legitimate
         if request.continueUrl:
-            request_body["continueUrl"] = request.continueUrl
+            # Ensure continueUrl is properly formatted
+            continue_url = request.continueUrl.strip()
+            # Remove trailing slash for consistency
+            if continue_url.endswith('/'):
+                continue_url = continue_url.rstrip('/')
+            request_body["continueUrl"] = continue_url
         
         print(f"[FORGOT_PASSWORD] Request body: {request_body}")
         print(f"[FORGOT_PASSWORD] API Key: {FIREBASE_WEB_API_KEY[:20]}...")

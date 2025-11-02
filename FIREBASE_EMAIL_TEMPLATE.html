@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset Your Password - Daily Questions</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo h1 {
+            color: #4F46E5;
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            color: #333333;
+        }
+        .greeting {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: #1f2937;
+        }
+        .message {
+            font-size: 16px;
+            margin-bottom: 30px;
+            color: #4b5563;
+        }
+        .button-container {
+            text-align: center;
+            margin: 40px 0;
+        }
+        .reset-button {
+            display: inline-block;
+            background-color: #4F46E5;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 14px 32px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .reset-button:hover {
+            background-color: #4338CA;
+        }
+        .security-notice {
+            background-color: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 16px;
+            margin: 30px 0;
+            border-radius: 4px;
+        }
+        .security-notice strong {
+            color: #92400e;
+        }
+        .security-notice p {
+            margin: 0;
+            font-size: 14px;
+            color: #78350f;
+        }
+        .expiry-info {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .alternative-link {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .alternative-link p {
+            font-size: 14px;
+            color: #6b7280;
+            word-break: break-all;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 14px;
+            color: #9ca3af;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                padding: 20px;
+            }
+            .reset-button {
+                display: block;
+                padding: 12px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="logo">
+            <h1>Daily Questions</h1>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">
+                Hello,
+            </div>
+            
+            <div class="message">
+                We received a request to reset your password for your Daily Questions account. 
+                If you made this request, please click the button below to reset your password:
+            </div>
+            
+            <div class="button-container">
+                <a href="{{link}}" class="reset-button">Reset Password</a>
+            </div>
+            
+            <div class="security-notice">
+                <p><strong>⚠️ Security Notice:</strong> If you didn't request a password reset, please ignore this email. 
+                Your password will remain unchanged. If you're concerned about your account security, 
+                please contact our support team immediately.</p>
+            </div>
+            
+            <div class="expiry-info">
+                This link will expire in 1 hour for your security.
+            </div>
+            
+            <div class="alternative-link">
+                <p><strong>Link not working?</strong> Copy and paste this URL into your browser:</p>
+                <p>{{link}}</p>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Daily Questions</strong></p>
+            <p>Your daily self-reflection companion</p>
+            <p style="margin-top: 20px; font-size: 12px;">
+                This is an automated email. Please do not reply to this message.
+            </p>
+            <p style="font-size: 12px;">
+                If you have any questions, contact us at <a href="mailto:daniyalareeb123@gmail.com" style="color: #4F46E5;">daniyalareeb123@gmail.com</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+
