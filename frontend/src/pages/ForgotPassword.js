@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { Link } from 'react-router-dom';
+import { apiService } from '../services/api';
 import {
   Container,
   Paper,
@@ -11,35 +11,37 @@ import {
   Alert,
   CircularProgress
 } from '@mui/material';
-import { QuestionAnswer } from '@mui/icons-material';
+import { LockReset } from '@mui/icons-material';
 
-function Login() {
+function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  
-  const { login } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      setError('Please fill in all fields');
+    if (!email) {
+      setError('Please enter your email address');
       return;
     }
 
     try {
       setError('');
+      setSuccess(false);
       setLoading(true);
-      await login(email, password);
-      navigate('/questions');
+      
+      // Get frontend URL for redirect after password reset
+      const frontendUrl = window.location.origin;
+      const continueUrl = `${frontendUrl}/reset-password`;
+      
+      await apiService.forgotPassword(email, continueUrl);
+      setSuccess(true);
     } catch (err) {
-      // Extract error message from API response
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to log in. Please check your credentials.';
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to send reset email. Please try again.';
       setError(errorMessage);
-      console.error('Login error:', err);
+      console.error('Forgot password error:', err);
     } finally {
       setLoading(false);
     }
@@ -57,19 +59,25 @@ function Login() {
       >
         <Paper elevation={3} sx={{ padding: 4, width: '100%' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3 }}>
-            <QuestionAnswer sx={{ fontSize: 40, color: 'primary.main', mr: 1 }} />
+            <LockReset sx={{ fontSize: 40, color: 'primary.main', mr: 1 }} />
             <Typography component="h1" variant="h4" sx={{ fontWeight: 'bold' }}>
-              Daily Questions
+              Reset Password
             </Typography>
           </Box>
           
-          <Typography component="h2" variant="h5" align="center" gutterBottom>
-            Sign In
+          <Typography component="h2" variant="h6" align="center" gutterBottom color="text.secondary">
+            Enter your email address and we'll send you a link to reset your password
           </Typography>
           
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {error}
+            </Alert>
+          )}
+          
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              If an account exists with this email, a password reset link has been sent. Please check your email inbox.
             </Alert>
           )}
           
@@ -85,39 +93,23 @@ function Login() {
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              margin="normal"
-              required
-              fullWidth
-              name="password"
-              label="Password"
-              type="password"
-              id="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              disabled={success || loading}
             />
             <Button
               type="submit"
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={loading}
+              disabled={loading || success}
             >
-              {loading ? <CircularProgress size={24} /> : 'Sign In'}
+              {loading ? <CircularProgress size={24} /> : 'Send Reset Link'}
             </Button>
             
-            <Box textAlign="center" sx={{ mt: 2 }}>
+            <Box textAlign="center">
               <Typography variant="body2">
-                <Link to="/forgot-password" style={{ textDecoration: 'none', color: '#4F46E5' }}>
-                  Forgot password?
-                </Link>
-              </Typography>
-              <Typography variant="body2" sx={{ mt: 1 }}>
-                Don't have an account?{' '}
-                <Link to="/register" style={{ textDecoration: 'none', color: '#4F46E5' }}>
-                  Sign up here
+                Remember your password?{' '}
+                <Link to="/login" style={{ textDecoration: 'none', color: '#4F46E5' }}>
+                  Sign in
                 </Link>
               </Typography>
             </Box>
@@ -128,4 +120,5 @@ function Login() {
   );
 }
 
-export default Login;
+export default ForgotPassword;
+

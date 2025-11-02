@@ -208,3 +208,112 @@ async def get_user_info(current_user: dict = Depends(get_current_user)):
         "uid": current_user["uid"],
         "email": current_user["email"]
     }
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+    continueUrl: Optional[str] = None  # Optional frontend URL for redirect after reset
+
+class ResetPasswordRequest(BaseModel):
+    oobCode: str  # Firebase password reset code from email link
+    newPassword: str
+
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest):
+    """Send password reset email via Firebase"""
+    import requests
+    
+    if not FIREBASE_WEB_API_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Firebase Web API Key not configured"
+        )
+    
+    try:
+        # Prepare request body
+        request_body = {
+            "requestType": "PASSWORD_RESET",
+            "email": request.email
+        }
+        
+        # Add continueUrl if provided (will be included in reset email link)
+        # This allows redirect to frontend after password reset
+        if request.continueUrl:
+            request_body["continueUrl"] = request.continueUrl
+        
+        # Use Firebase REST API to send password reset email
+        response = requests.post(
+            "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode",
+            params={"key": FIREBASE_WEB_API_KEY},
+            json=request_body,
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            # Success - email sent (Firebase doesn't reveal if email exists for security)
+            return {
+                "message": "If an account exists with this email, a password reset link has been sent."
+            }
+        else:
+            error_data = response.json().get("error", {})
+            error_message = error_data.get("message", "Failed to send password reset email")
+            
+            # Don't reveal if email exists (security best practice)
+            if "EMAIL_NOT_FOUND" in error_message:
+                # Still return success message to prevent email enumeration
+                return {
+                    "message": "If an account exists with this email, a password reset link has been sent."
+                }
+            else:
+                raise HTTPException(status_code=400, detail=error_message)
+    
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send reset email: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Password reset failed: {str(e)}")
+
+@router.post("/reset-password")
+async def reset_password(request: ResetPasswordRequest):
+    """Reset password using Firebase password reset code"""
+    import requests
+    
+    if not FIREBASE_WEB_API_KEY:
+        raise HTTPException(
+            status_code=500,
+            detail="Firebase Web API Key not configured"
+        )
+    
+    try:
+        # Use Firebase REST API to reset password
+        response = requests.post(
+            "https://identitytoolkit.googleapis.com/v1/accounts:resetPassword",
+            params={"key": FIREBASE_WEB_API_KEY},
+            json={
+                "oobCode": request.oobCode,
+                "newPassword": request.newPassword
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return {
+                "message": "Password reset successfully",
+                "email": data.get("email")
+            }
+        else:
+            error_data = response.json().get("error", {})
+            error_message = error_data.get("message", "Failed to reset password")
+            
+            # Handle common errors
+            if "INVALID_OOB_CODE" in error_message or "EXPIRED_OOB_CODE" in error_message:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid or expired reset code. Please request a new password reset."
+                )
+            else:
+                raise HTTPException(status_code=400, detail=error_message)
+    
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(status_code=500, detail=f"Failed to reset password: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Password reset failed: {str(e)}")

@@ -104,6 +104,12 @@ export const apiService = {
   
   getUserInfo: () => 
     api.get('/api/auth/user'),
+  
+  forgotPassword: (email, continueUrl = null) =>
+    api.post('/api/auth/forgot-password', { email, continueUrl }),
+  
+  resetPassword: (oobCode, newPassword) =>
+    api.post('/api/auth/reset-password', { oobCode, newPassword }),
 
   // Health
   healthCheck: () => 
