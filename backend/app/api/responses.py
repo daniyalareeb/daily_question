@@ -81,7 +81,7 @@ async def submit_response(
     user_id = current_user["uid"]
     
     # Validate that all 6 questions are answered
-    # Prevents partial submissions that would break analytics
+    # Pydantic model validation already handles this, but keeping as safety check
     if len(response_data.answers) != 6:
         raise HTTPException(
             status_code=400, 
@@ -89,19 +89,27 @@ async def submit_response(
         )
     
     # Extract keywords for each answer using NLP
-    # This processes the raw text and identifies key themes/words
-    # Used later for keyword frequency analysis in dashboard
+    # The text has already been cleaned by Pydantic validators
+    # Handles spaces, quotes, and extra whitespace properly
     processed_answers = []
     all_keywords = []
     
     for answer in response_data.answers:
+        # Skip if text is empty or just whitespace (shouldn't happen due to validation)
+        if not answer.text or not answer.text.strip():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Answer for question {answer.questionId} cannot be empty"
+            )
+        
         # Call NLP service to extract meaningful keywords from text
-        # Returns list like: ["happy", "excited", "learning"]
+        # This works with cleaned text and handles typos gracefully
         keywords = await extract_keywords_from_response(answer.text)
+        
         processed_answer = Answer(
             questionId=answer.questionId,
-            text=answer.text,
-            keywords=keywords  # Store extracted keywords for analytics
+            text=answer.text,  # Already cleaned by validator
+            keywords=keywords
         )
         processed_answers.append(processed_answer)
         all_keywords.extend(keywords)

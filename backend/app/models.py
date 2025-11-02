@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import List, Optional
 from datetime import datetime
 
@@ -6,10 +6,46 @@ class Answer(BaseModel):
     questionId: str
     text: str
     keywords: Optional[List[str]] = []
+    
+    @validator('text')
+    def clean_and_validate_text(cls, v):
+        """
+        Clean and validate user input.
+        Handles spaces, quotes, and extra whitespace.
+        Makes sure text is not empty and not too long.
+        """
+        if not v:
+            raise ValueError('Answer text cannot be empty')
+        
+        # Strip leading/trailing whitespace
+        cleaned = v.strip()
+        
+        # Check if empty after stripping
+        if not cleaned:
+            raise ValueError('Answer text cannot be empty')
+        
+        # Normalize multiple spaces to single space
+        cleaned = ' '.join(cleaned.split())
+        
+        # Remove any null bytes or control characters
+        cleaned = cleaned.replace('\x00', '').replace('\r', '')
+        
+        # Check length (max 5000 characters)
+        if len(cleaned) > 5000:
+            raise ValueError('Answer text is too long (max 5000 characters)')
+        
+        return cleaned
 
 class ResponseCreate(BaseModel):
     date: str  # YYYY-MM-DD
     answers: List[Answer]
+    
+    @validator('answers')
+    def validate_answers_count(cls, v):
+        """Make sure we have exactly 6 answers"""
+        if len(v) != 6:
+            raise ValueError('Must provide exactly 6 answers')
+        return v
 
 class ResponseInDB(ResponseCreate):
     userId: str

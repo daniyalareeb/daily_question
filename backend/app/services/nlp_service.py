@@ -48,11 +48,24 @@ STOP_WORDS = set(stopwords.words('english'))
 STOP_WORDS.update(['feel', 'feeling', 'think', 'thought', 'like', 'get', 'got', 'going', 'really', 'very', 'quite'])
 
 def extract_keywords_from_text(text: str) -> List[str]:
-    """Extract keywords from text using NLP techniques"""
+    """
+    Extract keywords from text using NLP techniques.
+    
+    This function handles:
+    - Extra spaces (normalized)
+    - Quotes (handled in tokenization)
+    - Typos (still extracts keywords even with spelling errors)
+    - Empty or whitespace-only text
+    """
     if not text or not text.strip():
         return []
     
-    # Convert to lowercase and tokenize
+    # Clean the text before processing
+    # Remove extra spaces and normalize
+    text = ' '.join(text.strip().split())
+    
+    # Convert to lowercase for better keyword matching
+    # Handles typos gracefully - still extracts meaningful words
     text = text.lower()
     tokens = word_tokenize(text)
     

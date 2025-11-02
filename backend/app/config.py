@@ -1,31 +1,28 @@
+# This file loads all environment variables from .env file
 from dotenv import load_dotenv
 import os
 
+# Load variables from .env file into the environment
 load_dotenv()
 
-# MongoDB Configuration
+# MongoDB database connection settings
 MONGODB_URI = os.getenv("MONGODB_URI")
-MONGODB_DBNAME = os.getenv("MONGODB_DBNAME", "daily_questions")
+MONGODB_DBNAME = os.getenv("MONGODB_DBNAME", "daily_questions")  # Default database name
 
-# Firebase Configuration
-FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH")
+# Firebase settings for authentication
+FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH")  # Path to credentials file
+FIREBASE_CREDENTIALS_JSON = os.getenv("FIREBASE_CREDENTIALS_JSON")  # Or use JSON string for cloud deployment
+FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_WEB_API_KEY")  # Needed for password reset emails
 
-# Firebase Service Account (for Render deployment)
-# Store the full JSON content as an environment variable
-FIREBASE_CREDENTIALS_JSON = os.getenv("FIREBASE_CREDENTIALS_JSON")
-
-# Firebase Web API Key (for password verification via REST API)
-FIREBASE_WEB_API_KEY = os.getenv("FIREBASE_WEB_API_KEY")
-
-# JWT Configuration
+# JWT token settings for user sessions
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-production")
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRATION_HOURS = 24 * 7  # 7 days
+JWT_ALGORITHM = "HS256"  # Algorithm used to sign tokens
+JWT_EXPIRATION_HOURS = 24 * 7  # Tokens expire after 7 days
 
-# Email Service
+# Email service for sending reminders
 RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
-# App Settings
-REMINDER_TIME = os.getenv("REMINDER_TIME", "20:00")
-ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+# App configuration
+REMINDER_TIME = os.getenv("REMINDER_TIME", "20:00")  # When to send daily reminders
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")  # development or production
 
