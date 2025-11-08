@@ -19,13 +19,11 @@ import {
   TrendingUp,
   CheckCircle,
 } from '@mui/icons-material';
-import { Bar } from 'react-chartjs-2';
+import { Bar, Doughnut } from 'react-chartjs-2';
 import '../utils/chartSetup'; // Initialize Chart.js registration
 import StatCard from '../components/dashboard/StatCard';
 import MetricCard from '../components/dashboard/MetricCard';
-import ChartCard from '../components/dashboard/ChartCard';
 import LineChartCard from '../components/dashboard/LineChartCard';
-import DoughnutChartCard from '../components/dashboard/DoughnutChartCard';
 import WordCloudCard from '../components/dashboard/WordCloudCard';
 import EmptyState from '../components/dashboard/EmptyState';
 import useDashboardData from '../hooks/useDashboardData';
@@ -44,6 +42,8 @@ import {
   EMPTY_STATE_MESSAGES,
   LOADING_MESSAGES,
   ERROR_MESSAGES,
+  DOUGHNUT_CHART_OPTIONS,
+  SENTIMENT_COLORS,
 } from '../config/dashboardConfig';
 
 function Dashboard() {
@@ -104,7 +104,8 @@ function Dashboard() {
       sx={{ 
         mt: { xs: 1, sm: 1.5 }, 
         mb: { xs: 2, sm: SPACING.container.mb },
-        px: { xs: 1.5, sm: 2 },
+        px: { xs: 1, sm: 1.5 }, // Reduced from 1.5/2
+        pr: { xs: 1, sm: 1 }, // Even less on right side
         transition: 'all 0.3s ease-in-out'
       }}
     >
@@ -186,7 +187,7 @@ function Dashboard() {
 
       {/* Weekly Summary - Compact */}
       <Card sx={{ mb: SPACING.section.mb }}>
-        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <CardContent sx={{ p: { xs: 1, sm: 1.5 }, pr: { xs: 1, sm: 1.25 }, '&:last-child': { pb: { xs: 1, sm: 1.5 } } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
@@ -274,38 +275,75 @@ function Dashboard() {
         </CardContent>
       </Card>
 
-      {/* Charts Row - Side by Side (50/50) */}
+      {/* Charts - Side by Side in Single Container */}
       {top_keywords?.top_10 && Array.isArray(top_keywords.top_10) && top_keywords.top_10.length > 0 && (
-        <Grid container spacing={SPACING.grid.spacing} sx={{ mb: SPACING.section.mb }}>
-          <Grid item xs={12} md={6}>
-            <ChartCard title="Top Keywords" height={CHART_HEIGHTS.keywords}>
-              {keywordsChartData ? (
-                <Bar 
-                  key={`keywords-chart-${top_keywords.top_10.slice(0, 5).join('-')}`}
-                  data={keywordsChartData} 
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        display: false,
-                      },
-                    },
-                  }}
-                />
-              ) : (
-                <EmptyState message={EMPTY_STATE_MESSAGES.noData} />
-              )}
-            </ChartCard>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <DoughnutChartCard 
-              positivityScore={positivity_score}
-              title="Sentiment Distribution"
-              height={CHART_HEIGHTS.doughnut}
-            />
-          </Grid>
-        </Grid>
+        <Card sx={{ mb: SPACING.section.mb }}>
+          <CardContent sx={{ p: { xs: 1.5, sm: 2 } }}>
+            <Grid container spacing={2}>
+              {/* Top Keywords - Left Side */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                  Top Keywords
+                </Typography>
+                <Box sx={{ height: CHART_HEIGHTS.keywords }}>
+                  {keywordsChartData ? (
+                    <Bar 
+                      key={`keywords-chart-${top_keywords.top_10.slice(0, 5).join('-')}`}
+                      data={keywordsChartData} 
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        layout: {
+                          padding: {
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                          },
+                        },
+                        plugins: {
+                          legend: {
+                            display: false,
+                          },
+                        },
+                      }}
+                    />
+                  ) : (
+                    <EmptyState message={EMPTY_STATE_MESSAGES.noData} />
+                  )}
+                </Box>
+              </Grid>
+
+              {/* Sentiment Distribution - Right Side */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
+                  Sentiment Distribution
+                </Typography>
+                <Box sx={{ height: CHART_HEIGHTS.doughnut }}>
+                  <Doughnut 
+                    key={`doughnut-${positivity_score.positive_count}-${positivity_score.negative_count}-${positivity_score.overall_score}`}
+                    data={{
+                      labels: ['Positive', 'Negative', 'Neutral'],
+                      datasets: [{
+                        data: [
+                          positivity_score.positive_count || 0,
+                          positivity_score.negative_count || 0,
+                          Math.max(0, 100 - (positivity_score.positive_count || 0) - (positivity_score.negative_count || 0))
+                        ],
+                        backgroundColor: [
+                          SENTIMENT_COLORS.positive,
+                          SENTIMENT_COLORS.negative,
+                          SENTIMENT_COLORS.neutral,
+                        ],
+                      }],
+                    }}
+                    options={DOUGHNUT_CHART_OPTIONS}
+                  />
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
       )}
 
       {/* Word Cloud */}

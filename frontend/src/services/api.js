@@ -32,8 +32,12 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Token is invalid or expired, clear it
       localStorage.removeItem('jwtToken');
-      // Optionally redirect to login (commented out to avoid breaking app flow)
-      // window.location.href = '/login';
+      // Dispatch custom event to notify AuthContext
+      window.dispatchEvent(new CustomEvent('auth:logout'));
+      // Redirect to login if not already there
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

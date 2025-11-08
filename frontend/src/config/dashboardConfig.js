@@ -114,6 +114,14 @@ export const WORD_CLOUD_CONFIG = {
 export const CHART_OPTIONS = {
   responsive: true,
   maintainAspectRatio: false,
+  layout: {
+    padding: {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    },
+  },
   plugins: {
     legend: {
       display: false,
@@ -173,6 +181,14 @@ export const LINE_CHART_OPTIONS = {
 // Bar Chart Specific Options
 export const BAR_CHART_OPTIONS = {
   ...CHART_OPTIONS,
+  layout: {
+    padding: {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    },
+  },
   plugins: {
     ...CHART_OPTIONS.plugins,
     tooltip: {
@@ -180,7 +196,7 @@ export const BAR_CHART_OPTIONS = {
         label: function(context) {
           const score = context.parsed.y;
           if (score === null) return 'No data';
-          return `Positivity: ${score}%`;
+          return `Count: ${score}`;
         },
       },
     },
@@ -188,11 +204,8 @@ export const BAR_CHART_OPTIONS = {
   scales: {
     y: {
       beginAtZero: true,
-      max: 100,
       ticks: {
-        callback: function(value) {
-          return value + '%';
-        },
+        stepSize: 1,
       },
     },
   },
@@ -201,6 +214,14 @@ export const BAR_CHART_OPTIONS = {
 // Doughnut Chart Specific Options
 export const DOUGHNUT_CHART_OPTIONS = {
   ...CHART_OPTIONS,
+  layout: {
+    padding: {
+      left: 0,
+      right: 0,
+      top: 0,
+      bottom: 0,
+    },
+  },
   plugins: {
     legend: {
       position: 'bottom',

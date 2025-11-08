@@ -1,5 +1,5 @@
 // Custom hook for managing dashboard data fetching and state
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiService } from '../services/api';
 import { DEFAULT_VALUES } from '../config/dashboardConfig';
 import { normalizeDailySentiment } from '../utils/dashboardUtils';
@@ -10,7 +10,7 @@ const useDashboardData = () => {
   const [error, setError] = useState('');
   const [todaySubmitted, setTodaySubmitted] = useState(false);
 
-  const fetchDashboardSummary = async () => {
+  const fetchDashboardSummary = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -23,21 +23,21 @@ const useDashboardData = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const checkTodayStatus = async () => {
+  const checkTodayStatus = useCallback(async () => {
     try {
       const status = await apiService.getTodayStatus();
       setTodaySubmitted(status.data.submitted);
     } catch (err) {
       console.error('Status check error:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchDashboardSummary();
     checkTodayStatus();
-  }, []);
+  }, [fetchDashboardSummary, checkTodayStatus]);
 
   // Extract and normalize data with defaults
   const {
@@ -52,6 +52,11 @@ const useDashboardData = () => {
 
   // Normalize daily sentiment
   const daily_sentiment = normalizeDailySentiment(raw_daily_sentiment);
+
+  const refetch = useCallback(async () => {
+    await fetchDashboardSummary();
+    await checkTodayStatus();
+  }, [fetchDashboardSummary, checkTodayStatus]);
 
   return {
     // State
@@ -70,7 +75,7 @@ const useDashboardData = () => {
     last_submission,
     
     // Actions
-    refetch: fetchDashboardSummary,
+    refetch,
   };
 };
 

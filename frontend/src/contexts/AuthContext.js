@@ -98,6 +98,15 @@ export function AuthProvider({ children }) {
     };
 
     verifyAuth();
+
+    // Listen for logout events from API interceptor
+    const handleLogout = () => {
+      setCurrentUser(null);
+      localStorage.removeItem('jwtToken');
+    };
+
+    window.addEventListener('auth:logout', handleLogout);
+    return () => window.removeEventListener('auth:logout', handleLogout);
   }, []);
 
   // Sign up function

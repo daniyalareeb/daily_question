@@ -2,6 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.models import ResponseCreate, ResponseInDB, Answer
 from app.crud.response import create_response, get_responses, get_response_by_id, get_all_responses_for_analytics
+from app.database import responses_collection
 from app.api.auth import get_current_user
 from app.services.nlp_service import extract_keywords_from_response
 from app.cache import cache_service
@@ -155,11 +156,11 @@ async def check_today_status(
     user_id = current_user["uid"]
     today = date.today().strftime("%Y-%m-%d")
     
-    responses, _ = await get_responses(user_id, limit=1, skip=0)
-    today_response = next(
-        (r for r in responses if r["date"] == today), 
-        None
-    )
+    # Query directly by date for better performance
+    today_response = await responses_collection.find_one({
+        "userId": user_id,
+        "date": today
+    })
     
     return {
         "date": today,

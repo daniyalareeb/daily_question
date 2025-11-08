@@ -22,6 +22,8 @@ class CacheService:
     def __init__(self):
         self.redis_client = None
         self.use_redis = False
+        self._user_keys = {}  # user_id -> set of key hashes
+        self._key_to_user = {}  # key_hash -> user_id (for cleanup)
         
     async def connect(self):
         if REDIS_AVAILABLE:
@@ -45,7 +47,15 @@ class CacheService:
     
     def _make_key(self, prefix: str, user_id: str, *args) -> str:
         key_data = f"{prefix}:{user_id}:" + ":".join(str(arg) for arg in args)
-        return hashlib.md5(key_data.encode()).hexdigest()
+        key_hash = hashlib.md5(key_data.encode()).hexdigest()
+        
+        # Track this key for this user
+        if user_id not in self._user_keys:
+            self._user_keys[user_id] = set()
+        self._user_keys[user_id].add(key_hash)
+        self._key_to_user[key_hash] = user_id
+        
+        return key_hash
     
     async def get(self, key: str) -> Optional[Any]:
         if self.use_redis and self.redis_client:
@@ -62,8 +72,15 @@ class CacheService:
                 if timestamp > current_time:
                     return _memory_cache[key]
                 else:
+                    # Key expired - clean up
                     del _memory_cache[key]
                     del _cache_timestamps[key]
+                    # Clean up tracking
+                    user_id = self._key_to_user.pop(key, None)
+                    if user_id and user_id in self._user_keys:
+                        self._user_keys[user_id].discard(key)
+                        if not self._user_keys[user_id]:
+                            self._user_keys.pop(user_id, None)
         return None
     
     async def set(self, key: str, value: Any, ttl_seconds: int = 300):
@@ -91,21 +108,36 @@ class CacheService:
         else:
             _memory_cache.pop(key, None)
             _cache_timestamps.pop(key, None)
+        
+        # Clean up tracking
+        user_id = self._key_to_user.pop(key, None)
+        if user_id and user_id in self._user_keys:
+            self._user_keys[user_id].discard(key)
+            if not self._user_keys[user_id]:
+                self._user_keys.pop(user_id, None)
     
     async def invalidate_user_cache(self, user_id: str):
+        # Get all keys for this user from our tracking
+        keys_to_delete = list(self._user_keys.get(user_id, set()))
+        
+        if not keys_to_delete:
+            return
+        
         if self.use_redis and self.redis_client:
             try:
-                pattern = f"*:{user_id}:*"
-                keys = await self.redis_client.keys(pattern)
-                if keys:
-                    await self.redis_client.delete(*keys)
+                await self.redis_client.delete(*keys_to_delete)
             except Exception as e:
                 logger.warning(f"Redis cache invalidation failed for user {user_id}: {e}")
         else:
-            keys_to_delete = [k for k in _memory_cache.keys() if user_id in k]
+            # In-memory cache invalidation
             for key in keys_to_delete:
                 _memory_cache.pop(key, None)
                 _cache_timestamps.pop(key, None)
+        
+        # Clean up tracking
+        for key in keys_to_delete:
+            self._key_to_user.pop(key, None)
+        self._user_keys.pop(user_id, None)
 
 cache_service = CacheService()
 
