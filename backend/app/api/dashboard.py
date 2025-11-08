@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+# Dashboard analytics API endpoints
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.api.auth import get_current_user
-from app.crud.response import get_responses
+from app.crud.response import get_responses, get_all_responses_for_analytics
 from app.services.analytics_service import (
     get_dashboard_analytics, 
     get_keyword_trends,
@@ -8,21 +9,27 @@ from app.services.analytics_service import (
     calculate_trend_lines,
     calculate_daily_progress,
     calculate_positivity_score,
-    calculate_weekly_summary
+    calculate_weekly_summary,
+    calculate_daily_sentiment_chart
 )
+from app.cache import cache_service
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from typing import Optional
+from datetime import datetime
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 @router.get("/analytics")
+@limiter.limit("30/minute")
 async def get_dashboard_data(
+    request: Request,
     time_filter: str = Query("recent", description="Time filter: recent, last_week, last_month, all"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get comprehensive dashboard analytics"""
     user_id = current_user["uid"]
     
-    # Validate time filter
     valid_filters = ["recent", "last_week", "last_month", "all"]
     if time_filter not in valid_filters:
         raise HTTPException(
@@ -30,33 +37,34 @@ async def get_dashboard_data(
             detail=f"Invalid time filter. Must be one of: {', '.join(valid_filters)}"
         )
     
-    # Get user responses
-    responses = await get_responses(user_id)
+    cache_key = cache_service._make_key("dashboard_analytics", user_id, time_filter)
+    cached_result = await cache_service.get(cache_key)
+    if cached_result:
+        return cached_result
     
-    # Convert ObjectId to string for JSON serialization
+    responses = await get_all_responses_for_analytics(user_id)
+    
     for response in responses:
         response["_id"] = str(response["_id"])
         if "submittedAt" in response:
             response["submittedAt"] = response["submittedAt"].isoformat()
     
-    # Get analytics
     analytics = get_dashboard_analytics(responses, time_filter)
+    await cache_service.set(cache_key, analytics, ttl_seconds=300)
     
     return analytics
 
 @router.get("/frequency-chart")
+@limiter.limit("30/minute")
 async def get_frequency_chart(
+    request: Request,
     question_id: Optional[str] = Query(None, description="Question ID to filter by"),
     time_filter: str = Query("recent", description="Time filter"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get frequency chart data for keywords"""
     user_id = current_user["uid"]
+    responses = await get_all_responses_for_analytics(user_id)
     
-    # Get user responses
-    responses = await get_responses(user_id)
-    
-    # Convert ObjectId to string
     for response in responses:
         response["_id"] = str(response["_id"])
         if "submittedAt" in response:
@@ -72,18 +80,16 @@ async def get_frequency_chart(
     }
 
 @router.get("/trend-line/{keyword}")
+@limiter.limit("30/minute")
 async def get_trend_line(
+    request: Request,
     keyword: str,
     question_id: Optional[str] = Query(None, description="Question ID to filter by"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get trend line data for a specific keyword"""
     user_id = current_user["uid"]
+    responses = await get_all_responses_for_analytics(user_id)
     
-    # Get user responses
-    responses = await get_responses(user_id)
-    
-    # Convert ObjectId to string
     for response in responses:
         response["_id"] = str(response["_id"])
         if "submittedAt" in response:
@@ -100,18 +106,16 @@ async def get_trend_line(
 
 
 @router.get("/insights")
+@limiter.limit("30/minute")
 async def get_insights(
+    request: Request,
     keyword: Optional[str] = Query(None, description="Specific keyword to analyze"),
     question_id: Optional[str] = Query(None, description="Question ID to filter by"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get AI-generated insights based on user data"""
     user_id = current_user["uid"]
+    responses = await get_all_responses_for_analytics(user_id)
     
-    # Get user responses
-    responses = await get_responses(user_id)
-    
-    # Convert ObjectId to string
     for response in responses:
         response["_id"] = str(response["_id"])
         if "submittedAt" in response:
@@ -120,15 +124,12 @@ async def get_insights(
     insights = []
     
     if keyword:
-        # Get insights for specific keyword
         trend_data = get_keyword_trends(responses, keyword, question_id)
         insights.extend(trend_data["insights"])
     else:
-        # Get general insights
         recent_analytics = get_dashboard_analytics(responses, "recent")
         week_analytics = get_dashboard_analytics(responses, "last_week")
         
-        # Compare recent vs last week
         recent_keywords = set(recent_analytics["overall"].get("top_keywords", {}).keys())
         week_keywords = set(week_analytics["overall"].get("top_keywords", {}).keys())
         
@@ -136,7 +137,6 @@ async def get_insights(
         if new_keywords:
             insights.append(f"New themes emerging: {', '.join(list(new_keywords)[:3])}")
         
-        # Check for trends
         for keyword in recent_keywords:
             if keyword in week_keywords:
                 recent_count = recent_analytics["overall"].get("absolute_counts", {}).get(keyword, 0)
@@ -155,26 +155,96 @@ async def get_insights(
     }
 
 @router.get("/summary")
-async def get_dashboard_summary(current_user: dict = Depends(get_current_user)):
-    """Get comprehensive dashboard summary with all new features"""
+@limiter.limit("30/minute")
+async def get_dashboard_summary(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
     user_id = current_user["uid"]
     
-    # Get user responses
-    responses = await get_responses(user_id)
+    cache_key = cache_service._make_key("dashboard_summary", user_id)
+    cached_result = await cache_service.get(cache_key)
+    if cached_result:
+        return cached_result
     
-    # Convert ObjectId to string
+    responses = await get_all_responses_for_analytics(user_id)
+    
     for response in responses:
         response["_id"] = str(response["_id"])
-        if "submittedAt" in response:
-            response["submittedAt"] = response["submittedAt"].isoformat()
+        if "date" in response and not isinstance(response["date"], str):
+            if hasattr(response["date"], 'strftime'):
+                response["date"] = response["date"].strftime("%Y-%m-%d")
+            else:
+                response["date"] = str(response["date"])
     
-    # Calculate all metrics
     daily_progress = calculate_daily_progress(responses)
     positivity = calculate_positivity_score(responses)
     weekly_summary = calculate_weekly_summary(responses)
     top_keywords = calculate_frequency_charts(responses)
     
-    return {
+    try:
+        daily_sentiment = calculate_daily_sentiment_chart(responses, days=7)
+        if daily_sentiment is None:
+            daily_sentiment = {}
+    except Exception as e:
+        daily_sentiment = {}
+    
+    last_submission_date = None
+    if responses:
+        submission_timestamps = []
+        for r in responses:
+            submitted_at = r.get("submittedAt")
+            if submitted_at:
+                submission_timestamps.append(submitted_at)
+        
+        if submission_timestamps:
+            try:
+                timestamp_objects = []
+                for ts in submission_timestamps:
+                    if isinstance(ts, str):
+                        try:
+                            if '+' in ts or ts.endswith('Z'):
+                                dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
+                            else:
+                                if '.' in ts:
+                                    parts = ts.split('.')
+                                    dt = datetime.strptime(parts[0], "%Y-%m-%dT%H:%M:%S")
+                                else:
+                                    dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%S")
+                        except Exception:
+                            continue
+                        timestamp_objects.append((dt, dt.date()))
+                    elif hasattr(ts, 'date') and hasattr(ts, 'year') and hasattr(ts, 'hour'):
+                        timestamp_objects.append((ts, ts.date()))
+                    elif hasattr(ts, 'strftime') and not hasattr(ts, 'hour'):
+                        dt = datetime.combine(ts, datetime.min.time())
+                        timestamp_objects.append((dt, ts))
+                
+                if timestamp_objects:
+                    latest = max(timestamp_objects, key=lambda x: x[0])
+                    last_submission_date = latest[1].strftime("%Y-%m-%d")
+            except Exception:
+                response_dates = [r.get("date") for r in responses if r.get("date")]
+                if response_dates:
+                    try:
+                        date_objects = []
+                        for d in response_dates:
+                            if isinstance(d, str):
+                                date_str = d.split('T')[0].split(' ')[0]
+                                date_objects.append((datetime.strptime(date_str, "%Y-%m-%d"), d))
+                            elif hasattr(d, 'strftime'):
+                                date_objects.append((d, d.strftime("%Y-%m-%d")))
+                        if date_objects:
+                            last_submission_date = max(date_objects, key=lambda x: x[0])[1]
+                    except Exception:
+                        last_submission_date = response_dates[0] if response_dates else None
+    
+    # Convert submittedAt to ISO format for JSON serialization (after we've used it for last_submission)
+    for response in responses:
+        if "submittedAt" in response and hasattr(response["submittedAt"], 'isoformat'):
+            response["submittedAt"] = response["submittedAt"].isoformat()
+    
+    result = {
         "daily_progress": {
             "days_this_month": daily_progress["days_this_month"],
             "current_streak": daily_progress["current_streak"],
@@ -187,7 +257,32 @@ async def get_dashboard_summary(current_user: dict = Depends(get_current_user)):
             "top_10": list(top_keywords["top_keywords"].keys())[:10],
             "counts": dict(list(top_keywords["top_keywords"].items())[:10])
         },
+        "daily_sentiment": daily_sentiment if daily_sentiment is not None else {},
         "total_reflections": len(responses),
-        "last_submission": responses[-1]["date"] if responses else None
+        "last_submission": last_submission_date
+    }
+    
+    # Cache the result for 5 minutes
+    await cache_service.set(cache_key, result, ttl_seconds=300)
+    return result
+
+@router.get("/weekly-sentiment")
+@limiter.limit("30/minute")
+async def get_weekly_sentiment(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = current_user["uid"]
+    responses = await get_all_responses_for_analytics(user_id)
+    
+    for response in responses:
+        response["_id"] = str(response["_id"])
+        if "submittedAt" in response:
+            response["submittedAt"] = response["submittedAt"].isoformat()
+    
+    daily_sentiment = calculate_daily_sentiment_chart(responses, days=7)
+    
+    return {
+        "daily_sentiment": daily_sentiment
     }
 

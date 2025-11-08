@@ -1,16 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException
+# User responses API endpoints
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from app.models import ResponseCreate, ResponseInDB, Answer
-from app.crud.response import create_response, get_responses, get_response_by_id
+from app.crud.response import create_response, get_responses, get_response_by_id, get_all_responses_for_analytics
 from app.api.auth import get_current_user
 from app.services.nlp_service import extract_keywords_from_response
+from app.cache import cache_service
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from typing import List, Optional
 from datetime import datetime, date
 from bson import ObjectId
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 @router.post("/")
+@limiter.limit("10/minute")
 async def submit_response(
+    request: Request,
     response_data: ResponseCreate,
     current_user: dict = Depends(get_current_user)
 ):
@@ -52,6 +59,9 @@ async def submit_response(
     
     try:
         response_id = await create_response(user_id, response_in_db)
+        
+        await cache_service.invalidate_user_cache(user_id)
+        
         return {
             "message": "Response submitted successfully",
             "response_id": str(response_id),
@@ -63,9 +73,13 @@ async def submit_response(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/")
+@limiter.limit("60/minute")
 async def get_user_responses(
+    request: Request,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=200, description="Items per page"),
     current_user: dict = Depends(get_current_user)
 ):
     user_id = current_user["uid"]
@@ -85,14 +99,27 @@ async def get_user_responses(
         except ValueError:
             raise HTTPException(status_code=400, detail="Invalid end_date format. Use YYYY-MM-DD")
     
-    responses = await get_responses(user_id, start_dt, end_dt)
+    skip = (page - 1) * page_size
+    responses, total_count = await get_responses(user_id, start_dt, end_dt, limit=page_size, skip=skip)
     
     for response in responses:
         response["_id"] = str(response["_id"])
         if "submittedAt" in response:
             response["submittedAt"] = response["submittedAt"].isoformat()
     
-    return responses
+    total_pages = (total_count + page_size - 1) // page_size if total_count > 0 else 0
+    
+    return {
+        "data": responses,
+        "pagination": {
+            "page": page,
+            "page_size": page_size,
+            "total_count": total_count,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_prev": page > 1
+        }
+    }
 
 @router.get("/{response_id}")
 async def get_single_response(
@@ -120,11 +147,15 @@ async def get_single_response(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/today/status")
-async def check_today_status(current_user: dict = Depends(get_current_user)):
+@limiter.limit("30/minute")
+async def check_today_status(
+    request: Request,
+    current_user: dict = Depends(get_current_user)
+):
     user_id = current_user["uid"]
     today = date.today().strftime("%Y-%m-%d")
     
-    responses = await get_responses(user_id)
+    responses, _ = await get_responses(user_id, limit=1, skip=0)
     today_response = next(
         (r for r in responses if r["date"] == today), 
         None

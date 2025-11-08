@@ -1,219 +1,116 @@
-/**
- * Dashboard Component - Daily Questions Analytics Dashboard
- * 
- * This component displays comprehensive analytics about user's daily reflections.
- * It shows progress, streaks, positivity scores, and visual charts.
- * 
- * Key Features:
- * - Daily Progress: Days completed this month (progress bar)
- * - Current Streak: Consecutive days with fire emoji indicator
- * - Positivity Score: Overall mood percentage (0-100%) based on sentiment analysis
- * - Weekly Summary: Days completed, weekly positivity, top themes for the week
- * - Top Keywords: Most frequently used words (bar chart visualization)
- * - Sentiment Distribution: Positive/negative/neutral breakdown (doughnut chart)
- * - Total Reflections: Overall count of daily submissions
- * - Done for Today Badge: Shows when user has submitted today
- * 
- * Data Flow:
- * 1. fetchDashboardSummary(): Gets main analytics from /api/dashboard/summary
- * 2. checkTodayStatus(): Checks if user submitted today from /api/responses/today/status
- * 3. fetchUserResponses(): Gets all user responses for detailed data
- * 4. State updates trigger UI re-renders with new data
- * 
- * Dependencies:
- * - apiService (services/api.js): Handles all API calls with Firebase auth tokens
- * - Chart.js + react-chartjs-2: Bar, Doughnut, Line charts for visualization
- * - Material-UI: Card, Grid, LinearProgress, Chip for UI components
- * - @mui/icons-material: LocalFireDepartment, CalendarToday, EmojiEmotions, etc.
- * 
- * API Endpoints Used:
- * - GET /api/dashboard/summary - Main dashboard data (all metrics)
- * - GET /api/responses/today/status - Check if submitted today
- * - GET /api/responses/ - Get all historical responses
- * 
- * User Experience:
- * - Shows loading spinner while fetching data
- * - Displays error message if API call fails
- * - Updates in real-time when user submits new responses
- * - Visual indicators (progress bars, charts, badges) for easy understanding
- */
-import React, { useState, useEffect } from 'react';
-import { apiService } from '../services/api';
+// Dashboard component for displaying daily questions analytics
+import React from 'react';
 import {
   Container,
   Typography,
   Box,
-  Card,
-  CardContent,
   Grid,
   Alert,
   CircularProgress,
-  LinearProgress,
+  Card,
+  CardContent,
   Chip,
-  Paper,
-  Divider
+  Divider,
 } from '@mui/material';
 import {
   LocalFireDepartment,
   CalendarToday,
   EmojiEmotions,
   TrendingUp,
-  CheckCircle
+  CheckCircle,
 } from '@mui/icons-material';
+import { Bar } from 'react-chartjs-2';
+import '../utils/chartSetup'; // Initialize Chart.js registration
+import StatCard from '../components/dashboard/StatCard';
+import MetricCard from '../components/dashboard/MetricCard';
+import ChartCard from '../components/dashboard/ChartCard';
+import LineChartCard from '../components/dashboard/LineChartCard';
+import DoughnutChartCard from '../components/dashboard/DoughnutChartCard';
+import WordCloudCard from '../components/dashboard/WordCloudCard';
+import EmptyState from '../components/dashboard/EmptyState';
+import useDashboardData from '../hooks/useDashboardData';
 import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement
-} from 'chart.js';
-import { Bar, Doughnut, Line } from 'react-chartjs-2';
-
-// Register Chart.js components
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement
-);
+  calculateProgressPercentage,
+  getDaysInCurrentMonth,
+  formatDateNumeric,
+  prepareKeywordsChartData,
+} from '../utils/dashboardUtils';
+import {
+  SPACING,
+  CHART_HEIGHTS,
+  KEYWORD_CHART_COLORS,
+  KEYWORD_CHART_BORDER_COLORS,
+  THEME_CARD_COLORS,
+  EMPTY_STATE_MESSAGES,
+  LOADING_MESSAGES,
+  ERROR_MESSAGES,
+} from '../config/dashboardConfig';
 
 function Dashboard() {
-  const [summary, setSummary] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [responses, setResponses] = useState([]);
-  const [todaySubmitted, setTodaySubmitted] = useState(false);
+  const {
+    loading,
+    error,
+    todaySubmitted,
+    daily_progress,
+    positivity_score,
+    weekly_summary,
+    top_keywords,
+    daily_sentiment,
+    total_reflections,
+    last_submission,
+  } = useDashboardData();
 
-  useEffect(() => {
-    fetchDashboardSummary();
-    checkTodayStatus();
-    fetchUserResponses();
-  }, []);
-
-  const fetchDashboardSummary = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      const response = await apiService.getDashboardSummary();
-      console.log('Dashboard Summary:', response.data);
-      setSummary(response.data);
-    } catch (err) {
-      console.error('Dashboard error:', err);
-      setError('Failed to load dashboard summary');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkTodayStatus = async () => {
-    try {
-      const status = await apiService.getTodayStatus();
-      setTodaySubmitted(status.data.submitted);
-    } catch (err) {
-      console.error('Status check error:', err);
-    }
-  };
-
-  const fetchUserResponses = async () => {
-    try {
-      const response = await apiService.getUserResponses();
-      setResponses(response.data);
-    } catch (err) {
-      console.error('Fetch responses error:', err);
-    }
-  };
-
+  // Loading state
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
+      <Container maxWidth="lg" sx={{ mt: SPACING.container.mt, mb: SPACING.container.mb }}>
+        <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress size={60} sx={{ mb: 2 }} />
+          <Typography variant="body1" color="text.secondary">
+            {LOADING_MESSAGES.dashboard}
+          </Typography>
         </Box>
       </Container>
     );
   }
 
+  // Error state
   if (error) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
+      <Container maxWidth="lg" sx={{ mt: SPACING.container.mt, mb: SPACING.container.mb }}>
         <Alert severity="error">{error}</Alert>
         <Alert severity="info" sx={{ mt: 2 }}>
-          Make sure you have logged in and submitted at least one response.
+          {ERROR_MESSAGES.loginRequired}
         </Alert>
       </Container>
     );
   }
 
-  // Default values if summary is null
-  const { 
-    daily_progress = { days_this_month: 0, current_streak: 0, longest_streak: 0, total_days: 0 },
-    positivity_score = { overall_score: 0, trend: 'neutral', positive_count: 0, negative_count: 0 },
-    weekly_summary = { days_completed: 0, top_themes: [], weekly_trend: 'neutral', positivity_score: 0 },
-    top_keywords = { top_10: [], counts: {} },
-    total_reflections = 0,
-    last_submission = null
-  } = summary || {};
+  // Calculations
+  const daysInMonth = getDaysInCurrentMonth();
+  const progressPercentage = calculateProgressPercentage(daily_progress.days_this_month, daysInMonth);
+  const keywordsChartData = prepareKeywordsChartData(top_keywords, 5);
 
-  // Chart data for top keywords
-  const keywordsChartData = top_keywords.top_10.length > 0 ? {
-    labels: top_keywords.top_10.slice(0, 5),
-    datasets: [{
-      label: 'Usage Count',
-      data: top_keywords.top_10.slice(0, 5).map(k => top_keywords.counts[k] || 0),
-      backgroundColor: [
-        'rgba(79, 70, 229, 0.8)',
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(59, 130, 246, 0.8)',
-        'rgba(251, 191, 36, 0.8)',
-        'rgba(239, 68, 68, 0.8)'
-      ],
-      borderColor: [
-        'rgba(79, 70, 229, 1)',
-        'rgba(16, 185, 129, 1)',
-        'rgba(59, 130, 246, 1)',
-        'rgba(251, 191, 36, 1)',
-        'rgba(239, 68, 68, 1)'
-      ],
-      borderWidth: 1
-    }]
-  } : null;
-
-  // Mood chart data
-  const moodData = {
-    labels: ['Positive', 'Negative', 'Neutral'],
-    datasets: [{
-      data: [
-        positivity_score.positive_count || 0,
-        positivity_score.negative_count || 0,
-        Math.max(0, (positivity_score.positive_count || 0) + (positivity_score.negative_count || 0))
-      ],
-      backgroundColor: [
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-        'rgba(156, 163, 175, 0.8)'
-      ]
-    }]
-  };
-
-  const currentDate = new Date();
-  const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
-  const progressPercentage = (daily_progress.days_this_month / daysInMonth) * 100;
+  // Add colors to keywords chart data if it exists
+  if (keywordsChartData) {
+    keywordsChartData.datasets[0].backgroundColor = KEYWORD_CHART_COLORS;
+    keywordsChartData.datasets[0].borderColor = KEYWORD_CHART_BORDER_COLORS;
+    keywordsChartData.datasets[0].borderWidth = 1;
+  }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 4 }}>
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+    <Container 
+      maxWidth="xl" 
+      sx={{ 
+        mt: { xs: 1, sm: 1.5 }, 
+        mb: { xs: 2, sm: SPACING.container.mb },
+        px: { xs: 1.5, sm: 2 },
+        transition: 'all 0.3s ease-in-out'
+      }}
+    >
+      {/* Compact Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h5" component="h1" sx={{ fontWeight: 'bold' }}>
           Your Reflection Dashboard
         </Typography>
         {todaySubmitted && (
@@ -221,296 +118,235 @@ function Dashboard() {
             icon={<CheckCircle />} 
             label="Completed for today!" 
             color="success" 
-            variant="outlined"
-            sx={{ fontSize: '0.9rem', py: 2.5 }}
+            size="small"
+            sx={{ fontSize: '0.85rem' }}
           />
         )}
       </Box>
 
-      {/* Main Stats Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {/* Days This Month */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <CalendarToday sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Days This Month
-                </Typography>
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                {daily_progress.days_this_month}
-              </Typography>
-              <Typography color="text.secondary" sx={{ mb: 2 }}>
-                Completed out of {daysInMonth} days
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={progressPercentage} 
-                sx={{ height: 10, borderRadius: 2 }}
-                color="primary"
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                {progressPercentage.toFixed(1)}% of month completed
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+      {/* Hero Banner Section - 3 Key Metrics */}
+      <Box 
+        sx={{ 
+          mb: SPACING.hero.mb,
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          p: { xs: 2, sm: 3 },
+          boxShadow: 2,
+        }}
+      >
+        <Grid container spacing={SPACING.grid.spacing}>
+          {/* Days This Month */}
+          <Grid item xs={12} sm={4}>
+            <StatCard
+              title="Days This Month"
+              value={daily_progress.days_this_month}
+              subtitle={`Completed out of ${daysInMonth} days`}
+              icon={CalendarToday}
+              progress={{
+                current: daily_progress.days_this_month,
+                total: daysInMonth,
+              }}
+              progressLabel={`${progressPercentage.toFixed(1)}% of month completed`}
+              color="primary"
+            />
+          </Grid>
 
-        {/* Current Streak */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ 
-            height: '100%',
-            background: daily_progress.current_streak > 0 
-              ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
-              : ''
-          }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <LocalFireDepartment sx={{ 
-                  mr: 1, 
-                  color: daily_progress.current_streak > 0 ? '#fff' : 'text.secondary',
-                  fontSize: 28
-                }} />
-                <Typography variant="h6" sx={{ 
-                  fontWeight: 'bold',
-                  color: daily_progress.current_streak > 0 ? '#fff' : 'inherit'
-                }}>
-                  Current Streak
-                </Typography>
-              </Box>
-              <Typography variant="h3" sx={{ 
-                fontWeight: 'bold', 
-                mb: 1,
-                color: daily_progress.current_streak > 0 ? '#fff' : 'inherit'
-              }}>
-                {daily_progress.current_streak} {daily_progress.current_streak > 0 ? '🔥' : ''}
-              </Typography>
-              <Typography color={daily_progress.current_streak > 0 ? 'rgba(255,255,255,0.8)' : 'text.secondary'}>
-                Keep it going!
-              </Typography>
-              <Typography variant="caption" color={daily_progress.current_streak > 0 ? 'rgba(255,255,255,0.7)' : 'text.secondary'}>
+          {/* Current Streak */}
+          <Grid item xs={12} sm={4}>
+            <StatCard
+              title="Current Streak"
+              value={`${daily_progress.current_streak} ${daily_progress.current_streak > 0 ? '🔥' : ''}`}
+              subtitle="Keep it going!"
+              icon={LocalFireDepartment}
+              color={daily_progress.current_streak > 0 ? 'warning' : 'default'}
+              variant={daily_progress.current_streak > 0 ? 'highlighted' : 'default'}
+              iconSize={32}
+              iconColor={daily_progress.current_streak > 0 ? 'warning.main' : 'text.secondary'}
+            >
+              <Typography variant="caption" color="text.secondary">
                 Longest streak: {daily_progress.longest_streak} days
               </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+            </StatCard>
+          </Grid>
 
-        {/* Positivity Score */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <EmojiEmotions sx={{ mr: 1, color: 'secondary.main', fontSize: 28 }} />
-                <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-                  Positivity Score
-                </Typography>
-              </Box>
-              <Typography variant="h3" sx={{ fontWeight: 'bold', mb: 1 }}>
-                {positivity_score.overall_score}%
+          {/* Positivity Score */}
+          <Grid item xs={12} sm={4}>
+            <MetricCard
+              title="Positivity Score"
+              value={positivity_score.overall_score}
+              subtitle="Your overall mood"
+              icon={EmojiEmotions}
+              progressValue={positivity_score.overall_score}
+              positiveCount={positivity_score.positive_count}
+              negativeCount={positivity_score.negative_count}
+            />
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* Weekly Summary - Compact */}
+      <Card sx={{ mb: SPACING.section.mb }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Weekly Summary
               </Typography>
-              <Typography color="text.secondary" sx={{ mb: 2 }}>
-                Your overall mood
-              </Typography>
-              <LinearProgress 
-                variant="determinate" 
-                value={positivity_score.overall_score} 
-                color={positivity_score.overall_score >= 70 ? 'success' : positivity_score.overall_score >= 50 ? 'primary' : 'warning'}
-                sx={{ height: 10, borderRadius: 2 }}
+            </Box>
+            {weekly_summary.positivity_score > 0 && (
+              <Chip
+                label={`${weekly_summary.positivity_score}% Positive`}
+                color="success"
+                size="small"
+                sx={{ fontWeight: 'bold' }}
               />
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Positive: {positivity_score.positive_count || 0}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Negative: {positivity_score.negative_count || 0}
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Weekly Summary */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <TrendingUp sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              Weekly Summary
-            </Typography>
+            )}
           </Box>
           
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+          <Grid container spacing={2} sx={{ mb: 2 }}>
+            <Grid item xs={6} md={3}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
                 {weekly_summary.days_completed}
               </Typography>
-              <Typography color="text.secondary">
-                Days completed this week
+              <Typography variant="body2" color="text.secondary">
+                Days this week
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+            <Grid item xs={6} md={3}>
+              <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
                 {weekly_summary.positivity_score}%
               </Typography>
-              <Typography color="text.secondary">
+              <Typography variant="body2" color="text.secondary">
                 Weekly positivity
               </Typography>
             </Grid>
-            <Grid item xs={12}>
-              <Divider sx={{ my: 2 }} />
-              <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 1 }}>
-                Top Themes This Week
-              </Typography>
-              {weekly_summary.top_themes && weekly_summary.top_themes.length > 0 ? (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {weekly_summary.top_themes.map((theme, index) => (
-                    <Chip 
-                      key={index} 
-                      label={theme} 
-                      color="primary" 
-                      variant="outlined" 
-                      size="medium"
-                    />
-                  ))}
-                </Box>
-              ) : (
-                <Typography color="text.secondary">Start reflecting to see your themes!</Typography>
-              )}
-            </Grid>
           </Grid>
+          
+          <Divider sx={{ my: 2 }} />
+          
+          {/* Top Themes This Week */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1.5 }}>
+              Top Themes This Week
+            </Typography>
+            {weekly_summary.top_themes && weekly_summary.top_themes.length > 0 ? (
+              <Grid container spacing={1.5}>
+                {weekly_summary.top_themes.map((theme, index) => {
+                  const color = THEME_CARD_COLORS[index % THEME_CARD_COLORS.length];
+                  return (
+                    <Grid item xs={6} sm={4} md={2.4} key={index}>
+                      <Card 
+                        sx={{ 
+                          bgcolor: color.bg,
+                          color: 'white',
+                          textAlign: 'center',
+                          p: 1.5,
+                          transition: 'all 0.2s ease',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            bgcolor: color.hover,
+                            transform: 'translateY(-2px)',
+                            boxShadow: 4,
+                          },
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {theme}
+                        </Typography>
+                      </Card>
+                    </Grid>
+                  );
+                })}
+              </Grid>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                {EMPTY_STATE_MESSAGES.noThemes}
+              </Typography>
+            )}
+          </Box>
+          
+          {/* Daily Sentiment Line Chart */}
+          <LineChartCard 
+            dailySentiment={daily_sentiment} 
+            title="Daily Sentiment Trends"
+          />
         </CardContent>
       </Card>
 
-      {/* Charts Row */}
-      {top_keywords.top_10.length > 0 && (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+      {/* Charts Row - Side by Side (50/50) */}
+      {top_keywords?.top_10 && Array.isArray(top_keywords.top_10) && top_keywords.top_10.length > 0 && (
+        <Grid container spacing={SPACING.grid.spacing} sx={{ mb: SPACING.section.mb }}>
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                  Top Keywords
-                </Typography>
-                <Box sx={{ height: 300 }}>
-                  <Bar 
-                    data={keywordsChartData} 
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          display: false
-                        }
-                      }
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
+            <ChartCard title="Top Keywords" height={CHART_HEIGHTS.keywords}>
+              {keywordsChartData ? (
+                <Bar 
+                  key={`keywords-chart-${top_keywords.top_10.slice(0, 5).join('-')}`}
+                  data={keywordsChartData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        display: false,
+                      },
+                    },
+                  }}
+                />
+              ) : (
+                <EmptyState message={EMPTY_STATE_MESSAGES.noData} />
+              )}
+            </ChartCard>
           </Grid>
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                  Sentiment Distribution
-                </Typography>
-                <Box sx={{ height: 300 }}>
-                  <Doughnut 
-                    data={moodData}
-                    options={{
-                      responsive: true,
-                      maintainAspectRatio: false,
-                      plugins: {
-                        legend: {
-                          position: 'bottom'
-                        }
-                      }
-                    }}
-                  />
-                </Box>
-              </CardContent>
-            </Card>
+            <DoughnutChartCard 
+              positivityScore={positivity_score}
+              title="Sentiment Distribution"
+              height={CHART_HEIGHTS.doughnut}
+            />
           </Grid>
         </Grid>
       )}
 
-      {/* Top Keywords */}
-      <Card sx={{ mb: 4 }}>
-        <CardContent>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-            Your Most Used Words
-          </Typography>
-          {top_keywords.top_10 && top_keywords.top_10.length > 0 ? (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {top_keywords.top_10.map((keyword, index) => (
-                <Chip
-                  key={index}
-                  label={`${keyword} (${top_keywords.counts[keyword] || 0})`}
-                  color="secondary"
-                  variant="outlined"
-                  size="medium"
-                  sx={{ fontSize: '1rem', py: 1.5, px: 0.5 }}
-                />
-              ))}
-            </Box>
-          ) : (
-            <Typography color="text.secondary">
-              No keywords yet. Start reflecting to see your most used words!
-            </Typography>
-          )}
-        </CardContent>
-      </Card>
+      {/* Word Cloud */}
+      <WordCloudCard topKeywords={top_keywords} />
 
-      {/* Total Reflections */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                Total Reflections
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
-                {total_reflections}
-              </Typography>
-              <Typography color="text.secondary">
-                Total entries you've made
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                Total Days
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
-                {daily_progress.total_days}
-              </Typography>
-              <Typography color="text.secondary">
-                Days with reflections
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom sx={{ fontWeight: 'bold' }}>
-                Last Submission
-              </Typography>
-              <Typography variant="h3" sx={{ fontWeight: 'bold' }}>
-                {last_submission ? new Date(last_submission).toLocaleDateString() : 'Never'}
-              </Typography>
-              <Typography color="text.secondary">
-                Most recent entry date
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+      {/* Footer Stats - Compact */}
+      <Box sx={{ 
+        bgcolor: 'grey.100', 
+        borderRadius: 2, 
+        p: { xs: 2, sm: 2.5 }, 
+        mb: SPACING.section.mb,
+        display: 'flex',
+        justifyContent: 'space-around',
+        flexWrap: 'wrap',
+        gap: { xs: 1.5, sm: 2 },
+      }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Total Reflections
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            {total_reflections}
+          </Typography>
+        </Box>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Total Days
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            {daily_progress.total_days}
+          </Typography>
+        </Box>
+        <Box sx={{ textAlign: 'center' }}>
+          <Typography variant="body2" color="text.secondary">
+            Last Submission
+          </Typography>
+          <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+            {formatDateNumeric(last_submission)}
+          </Typography>
+        </Box>
+      </Box>
     </Container>
   );
 }

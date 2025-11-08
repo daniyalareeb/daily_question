@@ -1,3 +1,4 @@
+# NLP service for keyword extraction and text analysis
 import re
 import nltk
 from collections import Counter
@@ -82,6 +83,7 @@ async def extract_keywords_from_response(text: str) -> List[str]:
     )
 
 def aggregate_keywords_across_responses(responses: List[Dict], question_id: str = None) -> Dict[str, int]:
+    # Use existing keywords or extract from text
     keyword_counter = Counter()
     
     for response in responses:
@@ -89,7 +91,17 @@ def aggregate_keywords_across_responses(responses: List[Dict], question_id: str 
             if question_id and answer.get("questionId") != question_id:
                 continue
             
+            # First try to use pre-extracted keywords
             keywords = answer.get("keywords", [])
+            
+            # If no keywords exist, extract them from text
+            if not keywords and answer.get("text"):
+                try:
+                    keywords = extract_keywords_from_text(answer.get("text", ""))
+                except Exception:
+                    # If extraction fails, continue without keywords
+                    keywords = []
+            
             keyword_counter.update(keywords)
     
     return dict(keyword_counter)

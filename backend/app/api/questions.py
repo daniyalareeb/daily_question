@@ -1,3 +1,4 @@
+# Questions API endpoints
 from fastapi import APIRouter, HTTPException
 from app.database import questions_collection
 from app.models import Question

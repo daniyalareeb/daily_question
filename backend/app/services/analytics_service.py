@@ -1,34 +1,11 @@
-"""
-Analytics Service for Daily Questions Dashboard
-
-This module provides comprehensive analytics calculations for user reflection data.
-It processes responses to generate insights about:
-- Daily progress and streak tracking
-- Keyword frequency analysis
-- Mood/positivity scoring based on sentiment analysis
-- Weekly summary reports
-- Trend analysis over time
-
-Key Functions:
-- calculate_frequency_charts: Creates keyword frequency data for visualization
-- calculate_trend_lines: Generates daily and weekly trend data
-- get_dashboard_analytics: Comprehensive analytics with time filtering
-- calculate_daily_progress: Tracks days completed and streak statistics
-- calculate_positivity_score: Analyzes sentiment using keyword matching
-- calculate_weekly_summary: Generates weekly reports with top themes
-
-Dependencies:
-- nlp_service.py: Provides keyword extraction and aggregation functions
-- Used by: api/dashboard.py for all dashboard analytics endpoints
-- Used by: Frontend Dashboard.js component via API calls
-
-Data Flow:
-User Responses → Analytics Functions → Dashboard Endpoints → Frontend Charts
-"""
+# Analytics calculations for dashboard
 from collections import Counter
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 from app.services.nlp_service import aggregate_keywords_across_responses, get_trend_data
+import logging
+
+logger = logging.getLogger(__name__)
 
 def calculate_frequency_charts(responses: List[Dict], question_id: Optional[str] = None) -> Dict[str, any]:
     """Calculate frequency charts for keywords"""
@@ -213,50 +190,42 @@ def calculate_daily_progress(responses: List[Dict]) -> Dict[str, any]:
             "total_days": 0
         }
     
-    # Get unique dates from all responses and sort chronologically
     dates = sorted(set([r["date"] for r in responses]))
     
-    # Calculate days this month by filtering dates that start with current month prefix
-    # Example: "2024-10-01" matches "2024-10"
     now = datetime.now()
     current_month = now.strftime("%Y-%m")
     days_this_month = len([d for d in dates if d.startswith(current_month)])
     
-    # Calculate streaks
     current_streak = 0
     longest_streak = 0
-    temp_streak = 0
     
     today = now.date()
     
-    # Check current streak by going backwards from today
-    # This finds consecutive days from today working backwards
-    # e.g., if today is Oct 26 and user submitted on Oct 25, 24, 23 -> streak is 3
-    for i in range(len(dates) - 1, -1, -1):
-        date_str = dates[i]
-        date_obj = datetime.strptime(date_str, "%Y-%m-%d").date()
-        
-        # Check if this date matches expected day for streak (today - temp_streak days)
-        if date_obj == today - timedelta(days=temp_streak):
-            temp_streak += 1
-        else:
-            break  # Streak broken, stop counting
+    date_objects = [datetime.strptime(d, "%Y-%m-%d").date() for d in dates]
     
+    # Count consecutive days backwards from today
+    temp_streak = 0
+    check_date = today
+    while check_date in date_objects:
+        temp_streak += 1
+        check_date = check_date - timedelta(days=1)
     current_streak = temp_streak
     
-    # Calculate longest streak across all time
-    # This finds the longest sequence of consecutive days in the entire history
-    streak_count = 1
-    for i in range(1, len(dates)):
-        date1 = datetime.strptime(dates[i-1], "%Y-%m-%d").date()
-        date2 = datetime.strptime(dates[i], "%Y-%m-%d").date()
-        
-        # If consecutive (difference is exactly 1 day), increment streak
-        if (date2 - date1).days == 1:
-            streak_count += 1
-            longest_streak = max(longest_streak, streak_count)
-        else:
-            streak_count = 1  # Streak broken, reset counter
+    # Find longest streak in history
+    sorted_date_objects = sorted(date_objects)
+    if len(sorted_date_objects) > 0:
+        streak_count = 1
+        longest_streak = 1
+        for i in range(1, len(sorted_date_objects)):
+            date1 = sorted_date_objects[i-1]
+            date2 = sorted_date_objects[i]
+            if (date2 - date1).days == 1:
+                streak_count += 1
+                longest_streak = max(longest_streak, streak_count)
+            else:
+                streak_count = 1
+    else:
+        longest_streak = 0
     
     return {
         "days_this_month": days_this_month,
@@ -266,49 +235,7 @@ def calculate_daily_progress(responses: List[Dict]) -> Dict[str, any]:
     }
 
 def calculate_positivity_score(responses: List[Dict]) -> Dict[str, any]:
-    """
-    Calculate overall mood/positivity score using sentiment analysis.
-    
-    This function analyzes all user responses to determine their overall emotional state.
-    It uses keyword-based sentiment analysis to detect positive and negative emotions.
-    
-    Process:
-    1. Extract all text from all answers across all responses
-    2. Search for positive keywords (happy, great, excited, etc.)
-    3. Search for negative keywords (sad, worried, stressed, etc.)
-    4. Calculate positivity percentage: (positive / (positive + negative)) * 100
-    5. Classify trend based on score thresholds
-    
-    Keyword Lists:
-    - Positive: happy, good, great, excited, grateful, positive, confident, proud, joyful,
-                satisfied, wonderful, amazing, fantastic, perfect, excellent, love, enjoy,
-                calm, peaceful, hopeful
-    - Negative: sad, bad, worried, stressed, tired, frustrated, anxious, disappointed, angry,
-                confused, terrible, awful, difficult, hard, struggle, problem, hate, upset,
-                nervous, annoyed
-    
-    Scoring Logic:
-    - 70-100%: very_positive (happy, optimistic user)
-    - 55-69%:  positive (generally positive mood)
-    - 45-54%:  neutral (balanced emotions)
-    - 0-44%:   negative (more negative emotions)
-    
-    Word Boundary Matching:
-    - Uses regex word boundaries (\b) to match whole words only
-    - Prevents partial matches (e.g., "happy" in "unhappy")
-    - Case-insensitive matching
-    
-    Returns:
-        Dict with overall_score (0-100), trend, positive_count, negative_count
-    
-    Used by:
-    - api/dashboard.py: /api/dashboard/summary endpoint
-    - Frontend Dashboard.js: Displays positivity score and mood indicators
-    
-    Example:
-        Input: [{"answers": [{"text": "I feel happy and excited today"}]}]
-        Output: {"overall_score": 100, "trend": "very_positive", "positive_count": 2, "negative_count": 0}
-    """
+    # Calculate mood score from positive/negative keywords
     # Define sentiment keywords
     positive_keywords = [
         "happy", "good", "great", "excited", "grateful", "positive", "confident", 
@@ -329,36 +256,27 @@ def calculate_positivity_score(responses: List[Dict]) -> Dict[str, any]:
             "negative_count": 0
         }
     
-    # Combine all answer text into one string for analysis
-    # Flattens all answers from all responses into single text blob
     all_text = " ".join([" ".join([a.get("text", "") for a in r.get("answers", [])]) for r in responses])
     all_text_lower = all_text.lower()
     
-    # Use word boundaries for accurate whole-word matching
-    # This prevents partial matches (e.g., "happy" in "unhappy")
     import re
     positive_count = sum(len(re.findall(r'\b' + word + r'\b', all_text_lower)) for word in positive_keywords)
     negative_count = sum(len(re.findall(r'\b' + word + r'\b', all_text_lower)) for word in negative_keywords)
     total_sentiment = positive_count + negative_count
     
-    # Calculate positivity score as percentage
-    # If no sentiment words found, default to neutral (50%)
     if total_sentiment == 0:
-        score = 50  # Neutral if no sentiment words found
+        score = 50
     else:
-        # Calculate percentage of positive vs total sentiment
-        # e.g., if positive=7, negative=3, score = (7/10)*100 = 70%
         score = int((positive_count / total_sentiment) * 100)
     
-    # Classify overall trend based on score thresholds
     if score >= 70:
-        trend = "very_positive"  # User is very happy and positive
+        trend = "very_positive"
     elif score >= 55:
-        trend = "positive"      # Generally positive mood
+        trend = "positive"
     elif score >= 45:
-        trend = "neutral"       # Balanced emotions
+        trend = "neutral"
     else:
-        trend = "negative"      # More negative emotions present
+        trend = "negative"
     
     return {
         "overall_score": score,
@@ -367,8 +285,87 @@ def calculate_positivity_score(responses: List[Dict]) -> Dict[str, any]:
         "negative_count": negative_count
     }
 
+def calculate_daily_sentiment_chart(responses: List[Dict], days: int = 7) -> Dict[str, any]:
+    # Calculate sentiment for last N days using submittedAt timestamps
+    if not responses:
+        return {}
+    
+    positive_keywords = [
+        "happy", "good", "great", "excited", "grateful", "positive", "confident", 
+        "proud", "joyful", "satisfied", "wonderful", "amazing", "fantastic", 
+        "perfect", "excellent", "love", "enjoy", "calm", "peaceful", "hopeful"
+    ]
+    negative_keywords = [
+        "sad", "bad", "worried", "stressed", "tired", "frustrated", "anxious", 
+        "disappointed", "angry", "confused", "terrible", "awful", "difficult",
+        "hard", "struggle", "problem", "hate", "upset", "nervous", "annoyed"
+    ]
+    
+    import re
+    from datetime import date as date_type
+    
+    now = datetime.utcnow()
+    daily_scores = {}
+    responses_by_date = {}
+    for r in responses:
+        submitted_at = r.get("submittedAt")
+        if not submitted_at:
+            submitted_at = r.get("date")
+        
+        submission_date = None
+        if isinstance(submitted_at, str):
+            try:
+                if 'T' in submitted_at:
+                    dt = datetime.fromisoformat(submitted_at.replace('Z', '+00:00'))
+                else:
+                    dt = datetime.strptime(submitted_at, "%Y-%m-%d")
+                submission_date = dt.date()
+            except Exception as e:
+                date_part = submitted_at.split('T')[0].split(' ')[0]
+                try:
+                    submission_date = datetime.strptime(date_part, "%Y-%m-%d").date()
+                except Exception as e2:
+                    logger.warning(f"Failed to parse submittedAt date '{submitted_at}': {e}, fallback also failed: {e2}")
+        elif hasattr(submitted_at, 'date'):
+            submission_date = submitted_at.date()
+        elif hasattr(submitted_at, 'strftime') and not hasattr(submitted_at, 'hour'):
+            submission_date = submitted_at
+        
+        if submission_date:
+            date_str = submission_date.strftime("%Y-%m-%d")
+            if date_str not in responses_by_date:
+                responses_by_date[date_str] = []
+            responses_by_date[date_str].append(r)
+    
+    for i in range(days):
+        target_date = (now - timedelta(days=i)).date()
+        date_str = target_date.strftime("%Y-%m-%d")
+        day_responses = responses_by_date.get(date_str, [])
+        
+        if not day_responses:
+            continue
+        
+        all_text = " ".join([" ".join([a.get("text", "") for a in r.get("answers", [])]) for r in day_responses])
+        all_text_lower = all_text.lower()
+        
+        positive_count = sum(len(re.findall(r'\b' + word + r'\b', all_text_lower)) for word in positive_keywords)
+        negative_count = sum(len(re.findall(r'\b' + word + r'\b', all_text_lower)) for word in negative_keywords)
+        total_sentiment = positive_count + negative_count
+        
+        if total_sentiment == 0:
+            score = 50
+        else:
+            score = int((positive_count / total_sentiment) * 100)
+        
+        daily_scores[date_str] = {
+            "score": int(score) if score is not None else 50,
+            "positive": int(positive_count) if positive_count is not None else 0,
+            "negative": int(negative_count) if negative_count is not None else 0
+        }
+    
+    return daily_scores
+
 def calculate_weekly_summary(responses: List[Dict]) -> Dict[str, any]:
-    """Generate weekly summary report"""
     now = datetime.now()
     week_ago = now - timedelta(days=7)
     

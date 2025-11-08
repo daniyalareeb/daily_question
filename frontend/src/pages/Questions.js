@@ -10,9 +10,11 @@ import {
   Alert,
   CircularProgress,
   LinearProgress,
-  Stack
+  Stack,
+  Fade
 } from '@mui/material';
 import { Send, ArrowForward, ArrowBack } from '@mui/icons-material';
+import CompletionScreen from '../components/CompletionScreen';
 
 function Questions() {
   const { questions, loading, error, submitResponses, getTodayStatus } = useQuestions();
@@ -24,7 +26,8 @@ function Questions() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
-  const [todaySubmitted, setTodaySubmitted] = useState(false);
+  const [todaySubmitted, setTodaySubmitted] = useState(null); // null = checking, true/false = checked
+  const [checkingStatus, setCheckingStatus] = useState(true);
   const textFieldRef = useRef(null);
 
   useEffect(() => {
@@ -34,6 +37,7 @@ function Questions() {
 
   const checkTodayStatus = async () => {
     try {
+      setCheckingStatus(true);
       const status = await getTodayStatus();
       setTodaySubmitted(status.submitted);
       if (status.submitted) {
@@ -41,6 +45,9 @@ function Questions() {
       }
     } catch (err) {
       console.error('Error checking today status:', err);
+      setTodaySubmitted(false);
+    } finally {
+      setCheckingStatus(false);
     }
   };
 
@@ -144,11 +151,15 @@ function Questions() {
     return questions.filter(q => answers[q.id]?.trim()).length;
   };
 
-  if (loading) {
+  // Show loading while checking status or loading questions
+  if (checkingStatus || loading) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-          <CircularProgress />
+      <Container maxWidth="md" sx={{ mt: { xs: 2, sm: 4 }, px: { xs: 2, sm: 3 } }}>
+        <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="400px">
+          <CircularProgress size={60} sx={{ mb: 2 }} />
+          <Typography variant="body1" color="text.secondary">
+            {checkingStatus ? 'Checking submission status...' : 'Loading questions...'}
+          </Typography>
         </Box>
       </Container>
     );
@@ -156,10 +167,15 @@ function Questions() {
 
   if (error) {
     return (
-      <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Container maxWidth="md" sx={{ mt: { xs: 2, sm: 4 }, px: { xs: 2, sm: 3 } }}>
         <Alert severity="error">{error}</Alert>
       </Container>
     );
+  }
+
+  // Show completion screen immediately if already submitted (no flash of questions page)
+  if (todaySubmitted === true) {
+    return <CompletionScreen />;
   }
 
   const currentQuestion = questions[currentIndex];
@@ -169,7 +185,14 @@ function Questions() {
   const answeredCount = getAnsweredQuestions();
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
+    <Container 
+      maxWidth="md" 
+      sx={{ 
+        py: { xs: 2, sm: 4 },
+        px: { xs: 2, sm: 3 },
+        transition: 'all 0.3s ease-in-out'
+      }}
+    >
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
@@ -181,11 +204,29 @@ function Questions() {
       </Box>
 
       {/* Progress Bar */}
-      <LinearProgress 
-        variant="determinate" 
-        value={progress} 
-        sx={{ mb: 3, height: 6, borderRadius: 3 }}
-      />
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            Progress
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+            {Math.round(progress)}%
+          </Typography>
+        </Box>
+        <LinearProgress 
+          variant="determinate" 
+          value={progress} 
+          sx={{ 
+            height: 8, 
+            borderRadius: 4,
+            backgroundColor: 'grey.200',
+            '& .MuiLinearProgress-bar': {
+              backgroundColor: progress >= 80 ? '#10b981' : progress >= 50 ? '#f59e0b' : '#ef4444',
+              transition: 'background-color 0.3s ease'
+            }
+          }}
+        />
+      </Box>
 
       {/* Alerts */}
       {submitSuccess && (
@@ -201,60 +242,80 @@ function Questions() {
       )}
 
       {/* Question */}
-      <Box 
-        sx={{ 
-          mb: 3,
-          bgcolor: 'white',
-          borderRadius: 3,
-          p: 4,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
-          border: '1px solid',
-          borderColor: 'divider'
-        }}
-      >
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '50%',
-              bgcolor: 'primary.main',
-              color: 'white',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 600,
-              mr: 2,
-              flexShrink: 0
-            }}
-          >
-            {currentIndex + 1}
-          </Box>
-          <Typography variant="h6" sx={{ fontWeight: 600, flex: 1 }}>
-            {currentQuestion.text}
-          </Typography>
-        </Box>
-
-        <TextField
-          inputRef={textFieldRef}
-          fullWidth
-          multiline
-          rows={8}
-          variant="outlined"
-          placeholder="Share your thoughts..."
-          value={answers[currentQuestion.id] || ''}
-          onChange={(e) => handleAnswerChange(e.target.value)}
-          disabled={todaySubmitted}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              fontSize: '1rem',
-              '& fieldset': {
-                borderWidth: 2,
-              },
-            },
+      <Fade in={true} timeout={300}>
+        <Box 
+          sx={{ 
+            mb: 3,
+            bgcolor: 'white',
+            borderRadius: 4,
+            p: 4,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+            border: '1px solid',
+            borderColor: 'divider',
+            transition: 'all 0.3s ease'
           }}
-        />
-      </Box>
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+            <Box
+              sx={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                bgcolor: 'grey.800',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '1.2rem',
+                mr: 2,
+                flexShrink: 0,
+                boxShadow: 2
+              }}
+            >
+              {currentIndex + 1}
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 600, flex: 1, lineHeight: 1.5 }}>
+              {currentQuestion.text}
+            </Typography>
+          </Box>
+
+          <TextField
+            inputRef={textFieldRef}
+            fullWidth
+            multiline
+            minRows={6}
+            maxRows={12}
+            variant="outlined"
+            placeholder="Share your thoughts... Be as detailed as you'd like."
+            value={answers[currentQuestion.id] || ''}
+            onChange={(e) => handleAnswerChange(e.target.value)}
+            disabled={todaySubmitted}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                fontSize: '1rem',
+                transition: 'border-color 0.3s ease',
+                '& fieldset': {
+                  borderWidth: 2,
+                  borderColor: answers[currentQuestion.id]?.trim() ? 'primary.main' : 'divider',
+                },
+                '&:hover fieldset': {
+                  borderColor: 'primary.main',
+                },
+                '&.Mui-focused fieldset': {
+                  borderColor: 'primary.main',
+                  borderWidth: 2,
+                },
+              },
+            }}
+          />
+          {answers[currentQuestion.id] && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              {answers[currentQuestion.id].length} characters
+            </Typography>
+          )}
+        </Box>
+      </Fade>
 
       {/* Navigation Buttons */}
       <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
@@ -271,12 +332,23 @@ function Questions() {
         {isLastQuestion ? (
           <Button
             variant="contained"
-            endIcon={submitting ? <CircularProgress size={20} /> : <Send />}
+            endIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Send />}
             onClick={handleFinalSubmit}
             disabled={submitting || todaySubmitted || !answers[currentQuestion.id]?.trim()}
-            sx={{ flex: 1 }}
+            sx={{ 
+              flex: 1,
+              py: 1.5,
+              bgcolor: answeredCount === questions.length ? 'success.main' : 'grey.800',
+              '&:hover': {
+                bgcolor: answeredCount === questions.length ? 'success.dark' : 'grey.900',
+              },
+              '&:disabled': {
+                bgcolor: 'grey.300'
+              },
+              transition: 'all 0.3s ease'
+            }}
           >
-            {submitting ? 'Submitting...' : 'Submit'}
+            {submitting ? 'Submitting...' : answeredCount === questions.length ? 'Submit All Answers' : 'Submit'}
           </Button>
         ) : (
           <Button
@@ -284,7 +356,15 @@ function Questions() {
             endIcon={<ArrowForward />}
             onClick={handleNext}
             disabled={!answers[currentQuestion.id]?.trim() || todaySubmitted}
-            sx={{ flex: 1 }}
+            sx={{ 
+              flex: 1,
+              py: 1.5,
+              bgcolor: 'grey.800',
+              '&:hover': {
+                bgcolor: 'grey.900',
+              },
+              transition: 'all 0.3s ease'
+            }}
           >
             Next
           </Button>
@@ -292,22 +372,33 @@ function Questions() {
       </Stack>
 
       {/* Question Indicators */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
         {questions.map((_, index) => (
           <Box
             key={index}
             onClick={() => !todaySubmitted && setCurrentIndex(index)}
             sx={{
-              width: 8,
-              height: 8,
+              width: 12,
+              height: 12,
               borderRadius: '50%',
-              bgcolor: index === currentIndex ? 'primary.main' : 
+              bgcolor: index === currentIndex ? 'grey.800' : 
                        answers[questions[index].id]?.trim() ? 'success.main' : 'grey.300',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              boxShadow: index === currentIndex ? 2 : 'none',
+              '&:hover': {
+                transform: 'scale(1.3)',
+                boxShadow: 2
+              }
             }}
+            title={`Question ${index + 1}${answers[questions[index].id]?.trim() ? ' (answered)' : ''}`}
           />
         ))}
       </Box>
+      
+      <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block', textAlign: 'center' }}>
+        Use ← → arrow keys to navigate
+      </Typography>
     </Container>
   );
 }

@@ -1,3 +1,4 @@
+# Authentication and user management API
 import firebase_admin
 from firebase_admin import credentials, auth as firebase_auth
 from fastapi import Depends, HTTPException, APIRouter
@@ -9,13 +10,17 @@ from app.config import (
     FIREBASE_WEB_API_KEY,
     JWT_SECRET_KEY,
     JWT_ALGORITHM,
-    JWT_EXPIRATION_HOURS
+    JWT_EXPIRATION_HOURS,
+    ENVIRONMENT
 )
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
 import json
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 try:
     if not firebase_admin._apps:
@@ -30,7 +35,7 @@ try:
             raise Exception("No Firebase credentials provided")
         firebase_admin.initialize_app(cred)
 except Exception as e:
-    print(f"Firebase initialization error: {e}")
+    logger.error(f"Firebase initialization error: {e}")
 
 router = APIRouter()
 security = HTTPBearer()
@@ -70,7 +75,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         try:
             firebase_user = firebase_auth.get_user(uid)
             return {"uid": uid, "email": email}
-        except:
+        except Exception as e:
+            logger.warning(f"Firebase user verification failed for uid {uid}: {e}")
             return {"uid": uid, "email": email}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
@@ -145,8 +151,8 @@ async def login(user_data: LoginRequest):
             firebase_auth.get_user(uid)
         except firebase_auth.UserNotFoundError:
             raise HTTPException(status_code=401, detail="User not found")
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Firebase user lookup failed for uid {uid}: {e}")
         
         access_token_expires = timedelta(hours=JWT_EXPIRATION_HOURS)
         access_token = create_access_token(
@@ -194,10 +200,10 @@ async def check_firebase_config():
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
-    continueUrl: Optional[str] = None  # Optional frontend URL for redirect after reset
+    continueUrl: Optional[str] = None
 
 class ResetPasswordRequest(BaseModel):
-    oobCode: str  # Firebase password reset code from email link
+    oobCode: str
     newPassword: str
 
 @router.post("/forgot-password")
@@ -222,9 +228,6 @@ async def forgot_password(request: ForgotPasswordRequest):
                 continue_url = continue_url.rstrip('/')
             request_body["continueUrl"] = continue_url
         
-        print(f"[FORGOT_PASSWORD] Request body: {request_body}")
-        print(f"[FORGOT_PASSWORD] API Key: {FIREBASE_WEB_API_KEY[:20]}...")
-        
         response = requests.post(
             "https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode",
             params={"key": FIREBASE_WEB_API_KEY},
@@ -232,12 +235,8 @@ async def forgot_password(request: ForgotPasswordRequest):
             timeout=10
         )
         
-        print(f"[FORGOT_PASSWORD] Response status: {response.status_code}")
-        print(f"[FORGOT_PASSWORD] Response body: {response.text}")
-        
         if response.status_code == 200:
-            response_data = response.json()
-            print(f"[FORGOT_PASSWORD] Success: {response_data}")
+            logger.info("Password reset email sent successfully")
             return {
                 "message": "If an account exists with this email, a password reset link has been sent."
             }
@@ -246,7 +245,7 @@ async def forgot_password(request: ForgotPasswordRequest):
                 error_data = response.json()
                 error_message = error_data.get("error", {}).get("message", "Failed to send password reset email")
                 error_code = error_data.get("error", {}).get("code", response.status_code)
-                print(f"[FORGOT_PASSWORD] Error: {error_message} (Code: {error_code})")
+                logger.warning(f"Password reset failed: {error_message} (Code: {error_code})")
                 
                 if "EMAIL_NOT_FOUND" in error_message:
                     return {
@@ -258,19 +257,17 @@ async def forgot_password(request: ForgotPasswordRequest):
                         detail=f"Failed to send reset email: {error_message}"
                     )
             except ValueError:
-                print(f"[FORGOT_PASSWORD] Non-JSON error response: {response.text}")
+                logger.error(f"Non-JSON error response from Firebase")
                 raise HTTPException(
                     status_code=500,
-                    detail=f"Failed to send reset email: {response.text[:200]}"
+                    detail="Failed to send reset email"
                 )
     
     except requests.exceptions.RequestException as e:
-        print(f"[FORGOT_PASSWORD] Request exception: {str(e)}")
+        logger.error(f"Request exception in password reset: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send reset email: {str(e)}")
     except Exception as e:
-        print(f"[FORGOT_PASSWORD] Unexpected error: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Unexpected error in password reset: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Password reset failed: {str(e)}")
 
 @router.post("/reset-password")

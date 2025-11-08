@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -9,18 +9,45 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress
+  CircularProgress,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
-import { QuestionAnswer } from '@mui/icons-material';
+import { QuestionAnswer, Visibility, VisibilityOff } from '@mui/icons-material';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const passwordInputRef = useRef(null);
   
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  const handleClickShowPassword = () => {
+    const input = passwordInputRef.current;
+    if (input) {
+      const cursorPosition = input.selectionStart || 0;
+      setShowPassword(!showPassword);
+      // Use requestAnimationFrame to ensure state update and DOM update are complete
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          if (passwordInputRef.current) {
+            passwordInputRef.current.setSelectionRange(cursorPosition, cursorPosition);
+            passwordInputRef.current.focus();
+          }
+        }, 0);
+      });
+    } else {
+      setShowPassword(!showPassword);
+    }
+  };
+
+  const handleMouseDownPassword = (e) => {
+    e.preventDefault();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -92,11 +119,28 @@ function Login() {
               fullWidth
               name="password"
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               id="password"
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              inputRef={(ref) => {
+                passwordInputRef.current = ref;
+              }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <Button
               type="submit"

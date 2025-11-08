@@ -85,6 +85,9 @@ export const apiService = {
   getDashboardSummary: () => 
     api.get('/api/dashboard/summary'),
   
+  getWeeklySentiment: () => 
+    api.get('/api/dashboard/weekly-sentiment'),
+  
   getInsights: (keyword = null, questionId = null) => {
     const params = new URLSearchParams();
     if (keyword) params.append('keyword', keyword);

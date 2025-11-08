@@ -1,19 +1,19 @@
-# Reminder service for notifications
-
+# Email reminders service
 import asyncio
 import resend
+import logging
 from datetime import datetime, time
 from typing import List, Dict
-from app.config import RESEND_API_KEY, REMINDER_TIME
+from app.config import RESEND_API_KEY, REMINDER_TIME, ENVIRONMENT
 from app.database import users_collection, responses_collection
 from app.api.auth import get_current_user
 import json
 
-# Initialize Resend
+logger = logging.getLogger(__name__)
+
 resend.api_key = RESEND_API_KEY
 
 async def send_email_reminder(user_email: str, user_name: str = None):
-    """Send email reminder using Resend"""
     try:
         params = {
             "from": "Daily Questions <noreply@dailyquestions.app>",
@@ -49,29 +49,21 @@ async def send_email_reminder(user_email: str, user_name: str = None):
         return {"success": False, "error": str(e)}
 
 async def send_web_push_reminder(user_id: str, subscription_data: Dict):
-    """Send web push notification"""
-    try:
-        # This would integrate with a web push service
-        # For now, we'll return a placeholder
-        return {"success": True, "message": "Web push notification sent"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+    # TODO: implement web push
+    return {"success": True, "message": "Web push notification sent"}
 
 async def get_users_for_reminder():
-    """Get users who should receive reminders"""
     try:
-        # Get users who have reminder preferences enabled
         users = await users_collection.find({
             "pref_reminder": True
         }).to_list(length=None)
         
         return users
     except Exception as e:
-        print(f"Error getting users for reminder: {e}")
+        logger.error(f"Error getting users for reminder: {e}")
         return []
 
 async def check_user_has_submitted_today(user_id: str) -> bool:
-    """Check if user has already submitted responses for today"""
     try:
         today = datetime.now().strftime("%Y-%m-%d")
         response = await responses_collection.find_one({
@@ -80,11 +72,10 @@ async def check_user_has_submitted_today(user_id: str) -> bool:
         })
         return response is not None
     except Exception as e:
-        print(f"Error checking user submission: {e}")
+        logger.error(f"Error checking user submission: {e}")
         return False
 
 async def send_daily_reminders():
-    """Send daily reminders to all eligible users"""
     try:
         users = await get_users_for_reminder()
         results = []
@@ -94,20 +85,15 @@ async def send_daily_reminders():
             user_email = user.get("email")
             user_name = user.get("displayName")
             
-            # Check if user has already submitted today
             has_submitted = await check_user_has_submitted_today(user_id)
             
             if not has_submitted and user_email:
-                # Send email reminder
                 email_result = await send_email_reminder(user_email, user_name)
                 results.append({
                     "user_id": user_id,
                     "email": user_email,
                     "email_result": email_result
                 })
-            
-            # TODO: Add web push notification logic here
-            # if user has web push subscription
         
         return {
             "success": True,
@@ -119,29 +105,22 @@ async def send_daily_reminders():
         return {"success": False, "error": str(e)}
 
 async def schedule_daily_reminders():
-    """Schedule daily reminders at the configured time"""
     reminder_hour, reminder_minute = map(int, REMINDER_TIME.split(":"))
     
     while True:
         now = datetime.now()
         target_time = now.replace(hour=reminder_hour, minute=reminder_minute, second=0, microsecond=0)
         
-        # If target time has passed today, schedule for tomorrow
         if now >= target_time:
             target_time = target_time.replace(day=target_time.day + 1)
         
-        # Calculate seconds until target time
         wait_seconds = (target_time - now).total_seconds()
-        
-        print(f"Next reminder scheduled for {target_time}")
+        logger.info(f"Next reminder scheduled for {target_time}")
         await asyncio.sleep(wait_seconds)
         
-        # Send reminders
         result = await send_daily_reminders()
-        print(f"Reminder result: {result}")
+        logger.info(f"Reminders sent: {result.get('reminders_sent', 0)}/{result.get('total_users', 0)}")
 
-# Background task to start the reminder scheduler
 async def start_reminder_scheduler():
-    """Start the reminder scheduler in the background"""
     asyncio.create_task(schedule_daily_reminders())
 

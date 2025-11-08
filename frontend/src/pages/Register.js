@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -9,19 +9,57 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress
+  CircularProgress,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
-import { QuestionAnswer } from '@mui/icons-material';
+import { QuestionAnswer, Visibility, VisibilityOff } from '@mui/icons-material';
 
 function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const passwordInputRef = useRef(null);
+  const confirmPasswordInputRef = useRef(null);
   
   const { signup } = useAuth();
   const navigate = useNavigate();
+
+  const handleClickShowPassword = () => {
+    const input = passwordInputRef.current?.querySelector('input');
+    if (input) {
+      const cursorPosition = input.selectionStart;
+      setShowPassword(!showPassword);
+      setTimeout(() => {
+        input.setSelectionRange(cursorPosition, cursorPosition);
+        input.focus();
+      }, 0);
+    } else {
+      setShowPassword(!showPassword);
+    }
+  };
+
+  const handleClickShowConfirmPassword = () => {
+    const input = confirmPasswordInputRef.current?.querySelector('input');
+    if (input) {
+      const cursorPosition = input.selectionStart;
+      setShowConfirmPassword(!showConfirmPassword);
+      setTimeout(() => {
+        input.setSelectionRange(cursorPosition, cursorPosition);
+        input.focus();
+      }, 0);
+    } else {
+      setShowConfirmPassword(!showConfirmPassword);
+    }
+  };
+
+  const handleMouseDownPassword = (e) => {
+    e.preventDefault();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,11 +141,27 @@ function Register() {
               fullWidth
               name="password"
               label="Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               id="password"
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              helperText="At least 6 characters"
+              inputRef={passwordInputRef}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               margin="normal"
@@ -115,11 +169,26 @@ function Register() {
               fullWidth
               name="confirmPassword"
               label="Confirm Password"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               id="confirmPassword"
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
+              inputRef={confirmPasswordInputRef}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowConfirmPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <Button
               type="submit"

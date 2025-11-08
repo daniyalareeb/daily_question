@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { apiService } from '../services/api';
 import {
@@ -9,9 +9,11 @@ import {
   Typography,
   Box,
   Alert,
-  CircularProgress
+  CircularProgress,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
-import { Lock } from '@mui/icons-material';
+import { Lock, Visibility, VisibilityOff } from '@mui/icons-material';
 
 function ResetPassword() {
   const [password, setPassword] = useState('');
@@ -22,6 +24,10 @@ function ResetPassword() {
   const [oobCode, setOobCode] = useState('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const passwordInputRef = useRef(null);
+  const confirmPasswordInputRef = useRef(null);
 
   useEffect(() => {
     // Get the oobCode from URL query parameter (Firebase sends this in the reset email link)
@@ -32,6 +38,38 @@ function ResetPassword() {
       setError('Invalid or missing reset code. Please request a new password reset.');
     }
   }, [searchParams]);
+
+  const handleClickShowPassword = () => {
+    const input = passwordInputRef.current?.querySelector('input');
+    if (input) {
+      const cursorPosition = input.selectionStart;
+      setShowPassword(!showPassword);
+      setTimeout(() => {
+        input.setSelectionRange(cursorPosition, cursorPosition);
+        input.focus();
+      }, 0);
+    } else {
+      setShowPassword(!showPassword);
+    }
+  };
+
+  const handleClickShowConfirmPassword = () => {
+    const input = confirmPasswordInputRef.current?.querySelector('input');
+    if (input) {
+      const cursorPosition = input.selectionStart;
+      setShowConfirmPassword(!showConfirmPassword);
+      setTimeout(() => {
+        input.setSelectionRange(cursorPosition, cursorPosition);
+        input.focus();
+      }, 0);
+    } else {
+      setShowConfirmPassword(!showConfirmPassword);
+    }
+  };
+
+  const handleMouseDownPassword = (e) => {
+    e.preventDefault();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -113,7 +151,7 @@ function ResetPassword() {
               fullWidth
               name="password"
               label="New Password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               id="password"
               autoComplete="new-password"
               autoFocus
@@ -121,6 +159,22 @@ function ResetPassword() {
               onChange={(e) => setPassword(e.target.value)}
               disabled={success || loading || !oobCode}
               helperText="Password must be at least 6 characters"
+              inputRef={passwordInputRef}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                      disabled={success || loading || !oobCode}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <TextField
               margin="normal"
@@ -128,12 +182,28 @@ function ResetPassword() {
               fullWidth
               name="confirmPassword"
               label="Confirm New Password"
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               id="confirmPassword"
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               disabled={success || loading || !oobCode}
+              inputRef={confirmPasswordInputRef}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={handleClickShowConfirmPassword}
+                      onMouseDown={handleMouseDownPassword}
+                      edge="end"
+                      disabled={success || loading || !oobCode}
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
             <Button
               type="submit"
