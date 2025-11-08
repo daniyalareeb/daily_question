@@ -203,13 +203,16 @@ def calculate_daily_progress(responses: List[Dict]) -> Dict[str, any]:
     
     date_objects = [datetime.strptime(d, "%Y-%m-%d").date() for d in dates]
     
-    # Count consecutive days backwards from today
-    temp_streak = 0
-    check_date = today
-    while check_date in date_objects:
-        temp_streak += 1
-        check_date = check_date - timedelta(days=1)
-    current_streak = temp_streak
+    # Count consecutive days backwards from most recent submission date
+    if date_objects:
+        temp_streak = 0
+        check_date = max(date_objects)  # Start from most recent date, not today
+        while check_date in date_objects:
+            temp_streak += 1
+            check_date = check_date - timedelta(days=1)
+        current_streak = temp_streak
+    else:
+        current_streak = 0
     
     # Find longest streak in history
     sorted_date_objects = sorted(date_objects)
