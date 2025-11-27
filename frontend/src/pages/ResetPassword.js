@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import {
   Container,
@@ -21,7 +22,6 @@ function ResetPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [oobCode, setOobCode] = useState('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -30,12 +30,23 @@ function ResetPassword() {
   const confirmPasswordInputRef = useRef(null);
 
   useEffect(() => {
-    // Get the oobCode from URL query parameter (Firebase sends this in the reset email link)
-    const code = searchParams.get('oobCode');
-    if (code) {
-      setOobCode(code);
+    // Check for reset token in URL (from email link)
+    // Backend will handle token validation
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery' && accessToken) {
+      // Store token temporarily for password reset
+      sessionStorage.setItem('resetToken', accessToken);
     } else {
-      setError('Invalid or missing reset code. Please request a new password reset.');
+      // Check query params as fallback
+      const token = searchParams.get('token');
+      if (token) {
+        sessionStorage.setItem('resetToken', token);
+      } else if (!accessToken && !token) {
+        setError('Invalid or expired reset link. Please request a new password reset.');
+      }
     }
   }, [searchParams]);
 
@@ -89,16 +100,29 @@ function ResetPassword() {
       return;
     }
 
-    if (!oobCode) {
-      setError('Invalid reset code');
-      return;
-    }
-
     try {
       setError('');
       setSuccess(false);
       setLoading(true);
-      await apiService.resetPassword(oobCode, password);
+      
+      // Get reset token from sessionStorage or URL
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
+      const resetToken = sessionStorage.getItem('resetToken') || 
+                        accessToken ||
+                        searchParams.get('token');
+      
+      if (!resetToken) {
+        throw new Error('Invalid or expired reset link. Please request a new password reset.');
+      }
+      
+      // Call backend API with token
+      await apiService.resetPassword(password, resetToken);
+      
+      // Clear token
+      sessionStorage.removeItem('resetToken');
+      
       setSuccess(true);
       
       // Redirect to login after 2 seconds
@@ -157,7 +181,7 @@ function ResetPassword() {
               autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={success || loading || !oobCode}
+              disabled={success || loading}
               helperText="Password must be at least 6 characters"
               inputRef={passwordInputRef}
               InputProps={{
@@ -168,7 +192,7 @@ function ResetPassword() {
                       onClick={handleClickShowPassword}
                       onMouseDown={handleMouseDownPassword}
                       edge="end"
-                      disabled={success || loading || !oobCode}
+                      disabled={success || loading}
                     >
                       {showPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -187,7 +211,7 @@ function ResetPassword() {
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={success || loading || !oobCode}
+              disabled={success || loading}
               inputRef={confirmPasswordInputRef}
               InputProps={{
                 endAdornment: (
@@ -197,7 +221,7 @@ function ResetPassword() {
                       onClick={handleClickShowConfirmPassword}
                       onMouseDown={handleMouseDownPassword}
                       edge="end"
-                      disabled={success || loading || !oobCode}
+                      disabled={success || loading}
                     >
                       {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
@@ -210,14 +234,14 @@ function ResetPassword() {
               fullWidth
               variant="contained"
               sx={{ mt: 3, mb: 2, py: 1.5 }}
-              disabled={loading || success || !oobCode}
+              disabled={loading || success}
             >
               {loading ? <CircularProgress size={24} /> : 'Reset Password'}
             </Button>
             
             <Box textAlign="center">
               <Typography variant="body2">
-                <Link to="/login" style={{ textDecoration: 'none', color: '#4F46E5' }}>
+                <Link to="/login" style={{ textDecoration: 'none', color: '#365E63' }}>
                   Back to Sign In
                 </Link>
               </Typography>

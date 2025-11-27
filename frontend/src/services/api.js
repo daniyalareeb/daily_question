@@ -9,9 +9,10 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Important for CORS with credentials
 });
 
-// Add auth token to requests
+// Add auth token to requests from localStorage
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('jwtToken');
@@ -29,6 +30,15 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Log CORS errors specifically
+    if (error.code === 'ERR_NETWORK' || error.message?.includes('CORS')) {
+      console.error('CORS Error detected:', error);
+      console.error('This might be due to:');
+      console.error('1. Backend server not running');
+      console.error('2. Browser cache issue - try hard refresh (Ctrl+Shift+R)');
+      console.error('3. Invalid authentication token');
+    }
+    
     if (error.response?.status === 401) {
       // Token is invalid or expired, clear it
       localStorage.removeItem('jwtToken');
@@ -46,8 +56,8 @@ api.interceptors.response.use(
 // API endpoints
 export const apiService = {
   // Questions
-  getQuestions: (randomize = false) => 
-    api.get(`/api/questions/?randomize=${randomize}`),
+  getQuestions: () => 
+    api.get('/api/questions/'),
   
   getQuestionById: (id) => 
     api.get(`/api/questions/${id}`),
@@ -80,24 +90,58 @@ export const apiService = {
     return api.get(`/api/dashboard/frequency-chart?${params.toString()}`);
   },
   
-  getTrendLine: (keyword, questionId = null) => {
+  getTrendLine: (optionText, questionId = null) => {
     const params = new URLSearchParams();
     if (questionId) params.append('question_id', questionId);
-    return api.get(`/api/dashboard/trend-line/${keyword}?${params.toString()}`);
+    return api.get(`/api/dashboard/trend-line/${encodeURIComponent(optionText)}?${params.toString()}`);
   },
   
   getDashboardSummary: () => 
     api.get('/api/dashboard/summary'),
   
-  getWeeklySentiment: () => 
-    api.get('/api/dashboard/weekly-sentiment'),
+  getWeeklyMood: () => 
+    api.get('/api/dashboard/weekly-mood'),
   
-  getInsights: (keyword = null, questionId = null) => {
-    const params = new URLSearchParams();
-    if (keyword) params.append('keyword', keyword);
-    if (questionId) params.append('question_id', questionId);
-    return api.get(`/api/dashboard/insights?${params.toString()}`);
-  },
+  getQuestionAnalytics: (questionId) => 
+    api.get(`/api/dashboard/question-analytics/${questionId}`),
+  
+  getSubQuestionAnalytics: (questionId, subQuestionId) => 
+    api.get(`/api/dashboard/sub-question-analytics/${questionId}/${subQuestionId}`),
+
+  // Health & Wellness Analytics
+  getSleepQualityTrend: (days = 30) => 
+    api.get(`/api/dashboard/sleep/quality-trend?days=${days}`),
+  
+  getSleepDurationDistribution: () => 
+    api.get('/api/dashboard/sleep/duration-distribution'),
+  
+  getBedtimePattern: () => 
+    api.get('/api/dashboard/sleep/bedtime-pattern'),
+  
+  getSleepScore: () => 
+    api.get('/api/dashboard/sleep/score'),
+  
+  getNutritionRatio: () => 
+    api.get('/api/dashboard/nutrition/ratio'),
+  
+  getMealFrequency: (days = 30) => 
+    api.get(`/api/dashboard/nutrition/meal-frequency?days=${days}`),
+  
+  getNutritionScore: () => 
+    api.get('/api/dashboard/nutrition/score'),
+  
+  getExerciseFrequency: (days = 30) => 
+    api.get(`/api/dashboard/exercise/frequency?days=${days}`),
+  
+  getExerciseDistribution: () => 
+    api.get('/api/dashboard/exercise/distribution'),
+  
+  getHydrationConsistency: (days = 30) => 
+    api.get(`/api/dashboard/hydration/consistency?days=${days}`),
+
+  // Optimized unified health & wellness endpoint (fetches all data in one request)
+  getHealthWellnessAll: (days = 30) => 
+    api.get(`/api/dashboard/health-wellness?days=${days}`),
 
   // Auth
   login: (email, password) =>
@@ -112,11 +156,14 @@ export const apiService = {
   getUserInfo: () => 
     api.get('/api/auth/user'),
   
-  forgotPassword: (email, continueUrl = null) =>
-    api.post('/api/auth/forgot-password', { email, continueUrl }),
+  forgotPassword: (email, redirectUrl = null) =>
+    api.post('/api/auth/forgot-password', { email, redirect_url: redirectUrl }),
   
-  resetPassword: (oobCode, newPassword) =>
-    api.post('/api/auth/reset-password', { oobCode, newPassword }),
+  resetPassword: (newPassword, token) =>
+    api.post('/api/auth/reset-password', { password: newPassword, token: token }),
+  
+  changePassword: (currentPassword, newPassword) =>
+    api.post('/api/auth/change-password', { current_password: currentPassword, new_password: newPassword }),
 
   // Health
   healthCheck: () => 

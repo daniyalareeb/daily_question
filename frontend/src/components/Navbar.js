@@ -48,7 +48,13 @@ function Navbar() {
   };
 
   return (
-    <AppBar position="static" elevation={1}>
+    <AppBar 
+      position="static" 
+      elevation={1}
+      sx={{
+        backgroundColor: '#365E63', // Dark teal
+      }}
+    >
       <Toolbar>
         <Typography
           variant="h6"
@@ -56,7 +62,8 @@ function Navbar() {
           sx={{ 
             flexGrow: 1, 
             fontWeight: 'bold',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            color: '#FFFFFF'
           }}
           onClick={() => navigate('/questions')}
         >
@@ -92,7 +99,7 @@ function Navbar() {
               onClick={handleMenuOpen}
               sx={{ ml: 1 }}
             >
-              <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+              <Avatar sx={{ width: 32, height: 32, bgcolor: '#8CD1BC' }}>
                 {currentUser.email?.charAt(0).toUpperCase()}
               </Avatar>
             </IconButton>

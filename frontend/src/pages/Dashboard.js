@@ -18,6 +18,10 @@ import {
   EmojiEmotions,
   TrendingUp,
   CheckCircle,
+  Bedtime,
+  Restaurant,
+  FitnessCenter,
+  WaterDrop,
 } from '@mui/icons-material';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import '../utils/chartSetup'; // Initialize Chart.js registration
@@ -26,6 +30,12 @@ import MetricCard from '../components/dashboard/MetricCard';
 import LineChartCard from '../components/dashboard/LineChartCard';
 import WordCloudCard from '../components/dashboard/WordCloudCard';
 import EmptyState from '../components/dashboard/EmptyState';
+import SleepQualityTrendCard from '../components/dashboard/SleepQualityTrendCard';
+import SleepDurationDoughnutCard from '../components/dashboard/SleepDurationDoughnutCard';
+import BedtimePatternCard from '../components/dashboard/BedtimePatternCard';
+import NutritionRatioCard from '../components/dashboard/NutritionRatioCard';
+import ExerciseFrequencyCard from '../components/dashboard/ExerciseFrequencyCard';
+import HydrationGaugeCard from '../components/dashboard/HydrationGaugeCard';
 import useDashboardData from '../hooks/useDashboardData';
 import {
   calculateProgressPercentage,
@@ -48,6 +58,7 @@ import {
 
 function Dashboard() {
   const {
+    summary,
     loading,
     error,
     todaySubmitted,
@@ -58,6 +69,16 @@ function Dashboard() {
     daily_sentiment,
     total_reflections,
     last_submission,
+    sleepQualityTrend,
+    sleepDuration,
+    bedtimePattern,
+    sleepScore,
+    nutritionRatio,
+    mealFrequency,
+    nutritionScore,
+    exerciseFrequency,
+    exerciseDistribution,
+    hydrationConsistency,
   } = useDashboardData();
 
   // Loading state
@@ -74,14 +95,17 @@ function Dashboard() {
     );
   }
 
-  // Error state
-  if (error) {
+  // Empty state - show when error or no data
+  // Only show empty state if we're not loading and have confirmed no data
+  // Check if summary exists and total_reflections is 0, or if there's an error
+  const hasNoData = summary !== null && total_reflections === 0;
+  const shouldShowEmpty = error || hasNoData;
+  
+  if (shouldShowEmpty) {
+    console.log('Showing empty state:', { error, hasNoData, total_reflections, summary: summary !== null });
     return (
       <Container maxWidth="lg" sx={{ mt: SPACING.container.mt, mb: SPACING.container.mb }}>
-        <Alert severity="error">{error}</Alert>
-        <Alert severity="info" sx={{ mt: 2 }}>
-          {ERROR_MESSAGES.loginRequired}
-        </Alert>
+        <EmptyState message="Start your daily reflection journey by answering today's questions" />
       </Container>
     );
   }
@@ -274,6 +298,87 @@ function Dashboard() {
           />
         </CardContent>
       </Card>
+
+      {/* Health & Wellness Section */}
+      <Box sx={{ mb: SPACING.section.mb }}>
+        <Typography variant="h5" component="h2" sx={{ fontWeight: 'bold', mb: 3, color: '#365E63' }}>
+          Health & Wellness Insights
+        </Typography>
+
+        {/* Sleep Analysis */}
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Bedtime sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              Sleep Analysis
+            </Typography>
+            {sleepScore && (
+              <Chip
+                label={`Sleep Score: ${sleepScore.score}/100`}
+                color="primary"
+                size="small"
+                sx={{ ml: 2, fontWeight: 'bold' }}
+              />
+            )}
+          </Box>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={8}>
+              <SleepQualityTrendCard sleepQualityTrend={sleepQualityTrend} />
+            </Grid>
+            <Grid item xs={12} md={4}>
+              <SleepDurationDoughnutCard sleepDuration={sleepDuration} />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <BedtimePatternCard bedtimePattern={bedtimePattern} />
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Nutrition Tracking */}
+        <Box sx={{ mb: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Restaurant sx={{ mr: 1, color: 'primary.main' }} />
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              Nutrition Tracking
+            </Typography>
+            {nutritionScore && (
+              <Chip
+                label={`Nutrition Score: ${nutritionScore.score}/100`}
+                color="success"
+                size="small"
+                sx={{ ml: 2, fontWeight: 'bold' }}
+              />
+            )}
+          </Box>
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={6}>
+              <NutritionRatioCard nutritionRatio={nutritionRatio} />
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Exercise & Hydration */}
+        <Grid container spacing={2} sx={{ mb: 4 }}>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <FitnessCenter sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Exercise Frequency
+              </Typography>
+            </Box>
+            <ExerciseFrequencyCard exerciseFrequency={exerciseFrequency} />
+          </Grid>
+          <Grid item xs={12} md={6}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <WaterDrop sx={{ mr: 1, color: 'primary.main' }} />
+              <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                Hydration Consistency
+              </Typography>
+            </Box>
+            <HydrationGaugeCard hydrationConsistency={hydrationConsistency} />
+          </Grid>
+        </Grid>
+      </Box>
 
       {/* Charts - Side by Side in Single Container */}
       {top_keywords?.top_10 && Array.isArray(top_keywords.top_10) && top_keywords.top_10.length > 0 && (

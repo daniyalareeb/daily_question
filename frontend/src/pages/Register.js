@@ -82,11 +82,17 @@ function Register() {
     try {
       setError('');
       setLoading(true);
-      await signup(email, password);
-      navigate('/questions');
+      const result = await signup(email, password);
+      
+      if (result.needsVerification) {
+        // Redirect to verify email page
+        navigate('/verify-email', { state: { email } });
+      } else {
+        navigate('/questions');
+      }
     } catch (err) {
-      // Extract error message from API response
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to create account. Email might already be in use.';
+      // Extract error message from Supabase
+      const errorMessage = err.message || 'Failed to create account. Email might already be in use.';
       setError(errorMessage);
       console.error('Registration error:', err);
     } finally {
@@ -203,7 +209,7 @@ function Register() {
             <Box textAlign="center">
               <Typography variant="body2">
                 Already have an account?{' '}
-                <Link to="/login" style={{ textDecoration: 'none', color: '#4F46E5' }}>
+                <Link to="/login" style={{ textDecoration: 'none', color: '#365E63' }}>
                   Sign in here
                 </Link>
               </Typography>

@@ -1,93 +1,170 @@
 # Questions API endpoints
+# 
+# Performance Optimizations:
+# - Questions data is cached (static data, changes infrequently)
+# - Single cache for all questions (shared across all users)
+# - Cache invalidated on server restart or manual clear
+#
 from fastapi import APIRouter, HTTPException
-from app.database import questions_collection
-from app.models import Question
-from typing import List
-import random
+from app.supabase_client import supabase
+from app.models import Question, QuestionOption, SubQuestion, SubQuestionOption
+from app.cache import cache_service
+from typing import List, Optional
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# Default questions for the app
-DEFAULT_QUESTIONS = [
-    {
-        "text": "How do you feel about the positive impact of AI?",
-        "order": 1,
-        "meta": ["technology", "ai", "future"]
-    },
-    {
-        "text": "How do you feel about your course?",
-        "order": 2,
-        "meta": ["education", "learning", "academic"]
-    },
-    {
-        "text": "How do you feel about your learning progression?",
-        "order": 3,
-        "meta": ["growth", "development", "skills"]
-    },
-    {
-        "text": "How do you feel about your finances?",
-        "order": 4,
-        "meta": ["money", "financial", "security"]
-    },
-    {
-        "text": "How do you feel about your friendships?",
-        "order": 5,
-        "meta": ["relationships", "social", "connections"]
-    },
-    {
-        "text": "How do you feel about your overall well-being today?",
-        "order": 6,
-        "meta": ["health", "wellness", "general"]
+# In-memory cache for questions (static data)
+_questions_cache: Optional[List[dict]] = None
+
+def build_question_tree(question_data: dict, options_data: List[dict], sub_questions_data: List[dict], sub_question_options_data: List[dict]) -> dict:
+    """Build complete question structure with options and sub-questions"""
+    question = {
+        "id": str(question_data["id"]),
+        "order": question_data["order"],
+        "text": question_data["text"],
+        "type": question_data["type"],
+        "required": question_data.get("required", True),
+        "options": [],
+        "sub_questions": []
     }
-]
+    
+    # Add options for this question
+    question_options = [opt for opt in options_data if str(opt["question_id"]) == str(question_data["id"])]
+    question["options"] = [
+        {
+            "id": str(opt["id"]),
+            "question_id": str(opt["question_id"]),
+            "option_text": opt["option_text"],
+            "option_value": opt["option_value"],
+            "order": opt["order"]
+        }
+        for opt in sorted(question_options, key=lambda x: x["order"])
+    ]
+    
+    # Add sub-questions if this question has them
+    if question_data["type"] == "with_sub_questions":
+        sub_questions = [sq for sq in sub_questions_data if str(sq["parent_question_id"]) == str(question_data["id"])]
+        for sub_q in sorted(sub_questions, key=lambda x: x["order"]):
+            sub_question = {
+                "id": str(sub_q["id"]),
+                "parent_question_id": str(sub_q["parent_question_id"]),
+                "sub_question_text": sub_q["sub_question_text"],
+                "type": sub_q["type"],
+                "order": sub_q["order"],
+                "triggering_option_value": sub_q.get("triggering_option_value"),
+                "options": []
+            }
+            
+            # Add options for this sub-question
+            sub_q_options = [opt for opt in sub_question_options_data if str(opt["sub_question_id"]) == str(sub_q["id"])]
+            sub_question["options"] = [
+                {
+                    "id": str(opt["id"]),
+                    "sub_question_id": str(opt["sub_question_id"]),
+                    "option_text": opt["option_text"],
+                    "option_value": opt["option_value"],
+                    "order": opt["order"]
+                }
+                for opt in sorted(sub_q_options, key=lambda x: x["order"])
+            ]
+            
+            question["sub_questions"].append(sub_question)
+    
+    return question
 
-async def seed_questions():
-    """Seed questions if they don't exist"""
-    existing_count = await questions_collection.count_documents({})
-    if existing_count == 0:
-        questions_to_insert = []
-        for i, q in enumerate(DEFAULT_QUESTIONS):
-            questions_to_insert.append({
-                "_id": f"q_{i+1}",
-                "text": q["text"],
-                "order": q["order"],
-                "meta": q["meta"]
-            })
-        await questions_collection.insert_many(questions_to_insert)
-
-@router.get("/", response_model=List[Question])
-async def get_all_questions(randomize: bool = False):
-    """Get all questions, optionally randomized"""
+async def _fetch_and_build_questions() -> List[dict]:
+    """Fetch and build questions tree from database"""
     try:
-        await seed_questions()
+        # Fetch all questions
+        questions_response = supabase.table("questions").select("*").order("order").execute()
+        questions_data = questions_response.data if questions_response.data else []
         
-        cursor = questions_collection.find().sort("order", 1)
-        questions = await cursor.to_list(length=None)
+        if not questions_data:
+            return []
         
-        # Convert MongoDB _id to id for Pydantic model
-        for question in questions:
-            question["id"] = question.pop("_id")
+        # Fetch all question options
+        options_response = supabase.table("question_options").select("*").execute()
+        options_data = options_response.data if options_response.data else []
         
-        if randomize:
-            random.shuffle(questions)
+        # Fetch all sub-questions
+        sub_questions_response = supabase.table("sub_questions").select("*").execute()
+        sub_questions_data = sub_questions_response.data if sub_questions_response.data else []
+        
+        # Fetch all sub-question options
+        sub_question_options_response = supabase.table("sub_question_options").select("*").execute()
+        sub_question_options_data = sub_question_options_response.data if sub_question_options_response.data else []
+        
+        # Build complete question tree
+        questions = []
+        for q_data in questions_data:
+            question = build_question_tree(q_data, options_data, sub_questions_data, sub_question_options_data)
+            questions.append(question)
         
         return questions
     except Exception as e:
+        logger.error(f"Error fetching questions: {e}")
+        raise
+
+@router.get("/")
+async def get_all_questions():
+    """Get all questions with their options and sub-questions (cached)"""
+    global _questions_cache
+    
+    # Check in-memory cache first
+    if _questions_cache is not None:
+        logger.debug("Returning questions from in-memory cache")
+        return _questions_cache
+    
+    # Check Redis cache
+    cache_key = "questions:all"
+    cached_result = await cache_service.get(cache_key)
+    if cached_result:
+        logger.info("Returning questions from Redis cache")
+        _questions_cache = cached_result  # Also store in memory
+        return cached_result
+    
+    # Fetch from database
+    logger.info("Fetching questions from database")
+    try:
+        questions = await _fetch_and_build_questions()
+        
+        # Cache in both memory and Redis
+        _questions_cache = questions
+        await cache_service.set(cache_key, questions, ttl_seconds=3600)  # Cache for 1 hour
+        
+        logger.info(f"Fetched and cached {len(questions)} questions")
+        return questions
+    except Exception as e:
+        logger.error(f"Error fetching questions: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch questions: {str(e)}")
 
-@router.get("/{question_id}", response_model=Question)
+@router.get("/{question_id}")
 async def get_question_by_id(question_id: str):
-    """Get a specific question by ID"""
-    question = await questions_collection.find_one({"_id": question_id})
-    if not question:
-        raise HTTPException(status_code=404, detail="Question not found")
-    
-    # Convert MongoDB _id to id for Pydantic model
-    question["id"] = question.pop("_id")
-    return question
+    """Get a specific question by ID with all options and sub-questions (uses cache)"""
+    try:
+        # Get all questions from cache (more efficient than individual query)
+        all_questions = await get_all_questions()
+        
+        # Find the specific question
+        question = next((q for q in all_questions if str(q["id"]) == str(question_id)), None)
+        
+        if not question:
+            raise HTTPException(status_code=404, detail="Question not found")
+        
+        return question
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching question: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch question: {str(e)}")
 
-@router.post("/seed")
-async def seed_questions_endpoint():
-    """Manually seed questions (for admin use)"""
-    await seed_questions()
-    return {"message": "Questions seeded successfully"}
+@router.post("/clear-cache")
+async def clear_questions_cache():
+    """Clear questions cache (admin endpoint - for testing/debugging)"""
+    global _questions_cache
+    _questions_cache = None
+    await cache_service.delete("questions:all")
+    return {"message": "Questions cache cleared"}

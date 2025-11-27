@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { apiService } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Container,
   Paper,
@@ -18,6 +18,7 @@ function ForgotPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { resetPassword } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,12 +35,12 @@ function ForgotPassword() {
       
       // Get frontend URL for redirect after password reset
       const frontendUrl = window.location.origin;
-      const continueUrl = `${frontendUrl}/reset-password`;
+      const redirectUrl = `${frontendUrl}/reset-password`;
       
-      await apiService.forgotPassword(email, continueUrl);
+      await resetPassword(email, redirectUrl);
       setSuccess(true);
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to send reset email. Please try again.';
+      const errorMessage = err.message || 'Failed to send reset email. Please try again.';
       setError(errorMessage);
       console.error('Forgot password error:', err);
     } finally {
@@ -108,7 +109,7 @@ function ForgotPassword() {
             <Box textAlign="center">
               <Typography variant="body2">
                 Remember your password?{' '}
-                <Link to="/login" style={{ textDecoration: 'none', color: '#4F46E5' }}>
+                <Link to="/login" style={{ textDecoration: 'none', color: '#365E63' }}>
                   Sign in
                 </Link>
               </Typography>

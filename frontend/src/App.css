@@ -1,6 +1,6 @@
 .App {
   min-height: 100vh;
-  background-color: #F9FAFB;
+  background-color: #F2F9F9; /* Pale cyan-white */
 }
 
 /* Custom scrollbar */
@@ -28,12 +28,12 @@
 
 /* Custom focus styles */
 .MuiButton-root:focus {
-  outline: 2px solid #4F46E5;
+  outline: 2px solid #365E63;
   outline-offset: 2px;
 }
 
 .MuiTextField-root .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
-  border-color: #4F46E5;
+  border-color: #365E63;
 }
 
 /* Card hover effects */

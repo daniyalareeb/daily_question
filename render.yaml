@@ -8,11 +8,9 @@ services:
     startCommand: cd /opt/render/project/src/backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     rootDir: backend
     envVars:
-      - key: MONGODB_URI
+      - key: SUPABASE_URL
         sync: false
-      - key: MONGODB_DBNAME
-        value: daily_questions
-      - key: FIREBASE_CREDENTIALS_JSON
+      - key: SUPABASE_SERVICE_KEY
         sync: false
       - key: RESEND_API_KEY
         sync: false

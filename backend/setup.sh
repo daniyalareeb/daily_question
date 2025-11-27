@@ -30,30 +30,24 @@ source venv/bin/activate
 echo "📚 Installing dependencies..."
 pip install -r requirements.txt
 
-# Download NLTK data
-echo "🧠 Downloading NLTK data..."
-python -c "
-import nltk
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('averaged_perceptron_tagger')
-print('NLTK data downloaded successfully!')
-"
-
 # Create .env file if it doesn't exist
 if [ ! -f ".env" ]; then
     echo "⚙️ Creating .env file..."
-    cp .env.example .env
-    echo "📝 Please update .env file with your MongoDB URI, Firebase credentials, and Resend API key"
+    if [ -f "env.template" ]; then
+        cp env.template .env
+    elif [ -f ".env.example" ]; then
+        cp .env.example .env
+    fi
+    echo "📝 Please update .env file with your Supabase credentials and Resend API key"
 fi
 
 echo "✅ Setup complete!"
 echo ""
 echo "📋 Next steps:"
 echo "1. Update .env file with your credentials:"
-echo "   - MONGODB_URI: Your MongoDB connection string"
-echo "   - FIREBASE_CREDENTIALS_PATH: Path to your Firebase service account JSON"
-echo "   - RESEND_API_KEY: Your Resend API key"
+echo "   - SUPABASE_URL: Your Supabase project URL"
+echo "   - SUPABASE_SERVICE_KEY: Your Supabase service role key"
+echo "   - RESEND_API_KEY: Your Resend API key (optional)"
 echo ""
 echo "2. Run the application:"
 echo "   source venv/bin/activate"

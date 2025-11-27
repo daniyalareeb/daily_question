@@ -13,11 +13,11 @@ export function QuestionsProvider({ children }) {
   const [error, setError] = useState(null);
 
   // Fetch questions from API
-  const fetchQuestions = async (randomize = false) => {
+  const fetchQuestions = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiService.getQuestions(randomize);
+      const response = await apiService.getQuestions();
       setQuestions(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to fetch questions');

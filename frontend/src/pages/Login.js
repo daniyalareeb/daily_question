@@ -63,8 +63,8 @@ function Login() {
       await login(email, password);
       navigate('/questions');
     } catch (err) {
-      // Extract error message from API response
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to log in. Please check your credentials.';
+      // Extract error message from Supabase
+      const errorMessage = err.message || 'Failed to log in. Please check your credentials.';
       setError(errorMessage);
       console.error('Login error:', err);
     } finally {
@@ -154,13 +154,13 @@ function Login() {
             
             <Box textAlign="center" sx={{ mt: 2 }}>
               <Typography variant="body2">
-                <Link to="/forgot-password" style={{ textDecoration: 'none', color: '#4F46E5' }}>
+                <Link to="/forgot-password" style={{ textDecoration: 'none', color: '#365E63' }}>
                   Forgot password?
                 </Link>
               </Typography>
               <Typography variant="body2" sx={{ mt: 1 }}>
                 Don't have an account?{' '}
-                <Link to="/register" style={{ textDecoration: 'none', color: '#4F46E5' }}>
+                <Link to="/register" style={{ textDecoration: 'none', color: '#365E63' }}>
                   Sign up here
                 </Link>
               </Typography>

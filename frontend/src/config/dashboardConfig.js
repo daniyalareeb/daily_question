@@ -4,67 +4,69 @@
  * No hardcoded values - everything comes from here
  */
 
-// Color Palettes
+// Color Palettes - Teal/Grey Theme
 export const CHART_COLORS = {
   primary: {
-    blue: 'rgba(59, 130, 246, 1)',
-    blueLight: 'rgba(59, 130, 246, 0.8)',
-    blueBg: 'rgba(59, 130, 246, 0.1)',
+    teal: 'rgba(54, 94, 99, 1)', // #365E63
+    tealLight: 'rgba(54, 94, 99, 0.8)',
+    tealBg: 'rgba(54, 94, 99, 0.1)',
   },
-  success: {
-    green: 'rgba(16, 185, 129, 1)',
-    greenLight: 'rgba(16, 185, 129, 0.8)',
-    greenBg: 'rgba(16, 185, 129, 0.1)',
+  secondary: {
+    mint: 'rgba(140, 209, 188, 1)', // #8CD1BC
+    mintLight: 'rgba(140, 209, 188, 0.8)',
+    mintBg: 'rgba(140, 209, 188, 0.1)',
   },
-  warning: {
-    yellow: 'rgba(251, 191, 36, 1)',
-    yellowLight: 'rgba(251, 191, 36, 0.8)',
+  medium: {
+    teal: 'rgba(107, 142, 145, 1)', // #6B8E91
+    tealLight: 'rgba(107, 142, 145, 0.8)',
+    tealBg: 'rgba(107, 142, 145, 0.1)',
   },
-  error: {
-    red: 'rgba(239, 68, 68, 1)',
-    redLight: 'rgba(239, 68, 68, 0.8)',
+  light: {
+    teal: 'rgba(207, 224, 224, 1)', // #CFE0E0
+    tealLight: 'rgba(207, 224, 224, 0.8)',
+    tealBg: 'rgba(207, 224, 224, 0.1)',
   },
   neutral: {
-    gray: 'rgba(156, 163, 175, 1)',
-    grayLight: 'rgba(156, 163, 175, 0.8)',
-    grayBg: 'rgba(156, 163, 175, 0.1)',
+    gray: 'rgba(153, 153, 153, 1)', // #999999
+    grayLight: 'rgba(153, 153, 153, 0.8)',
+    grayBg: 'rgba(153, 153, 153, 0.1)',
   },
-  purple: {
-    purple: 'rgba(139, 92, 246, 1)',
-    purpleLight: 'rgba(139, 92, 246, 0.8)',
+  dark: {
+    gray: 'rgba(102, 102, 102, 1)', // #666666
+    grayLight: 'rgba(102, 102, 102, 0.8)',
   },
 };
 
-// Chart Color Arrays
+// Chart Color Arrays - Teal Theme
 export const KEYWORD_CHART_COLORS = [
-  CHART_COLORS.primary.blueLight,
-  CHART_COLORS.success.greenLight,
-  CHART_COLORS.warning.yellowLight,
-  CHART_COLORS.error.redLight,
-  CHART_COLORS.purple.purpleLight,
+  CHART_COLORS.primary.tealLight,
+  CHART_COLORS.secondary.mintLight,
+  CHART_COLORS.medium.tealLight,
+  CHART_COLORS.light.tealLight,
+  'rgba(123, 196, 214, 0.8)', // #7BC4D6 - cyan-blue
 ];
 
 export const KEYWORD_CHART_BORDER_COLORS = [
-  CHART_COLORS.primary.blue,
-  CHART_COLORS.success.green,
-  CHART_COLORS.warning.yellow,
-  CHART_COLORS.error.red,
-  CHART_COLORS.purple.purple,
+  CHART_COLORS.primary.teal,
+  CHART_COLORS.secondary.mint,
+  CHART_COLORS.medium.teal,
+  CHART_COLORS.light.teal,
+  '#7BC4D6', // cyan-blue
 ];
 
 export const SENTIMENT_COLORS = {
-  positive: CHART_COLORS.success.greenLight,
-  negative: CHART_COLORS.error.redLight,
+  positive: CHART_COLORS.secondary.mintLight,
+  negative: 'rgba(239, 68, 68, 0.8)', // Keep red for negative
   neutral: CHART_COLORS.neutral.grayLight,
 };
 
-// Theme Card Colors
+// Theme Card Colors - Teal variations
 export const THEME_CARD_COLORS = [
-  { bg: '#3B82F6', hover: '#2563EB', label: 'Blue' },
-  { bg: '#10B981', hover: '#059669', label: 'Green' },
-  { bg: '#F59E0B', hover: '#D97706', label: 'Yellow/Orange' },
-  { bg: '#8B5CF6', hover: '#7C3AED', label: 'Purple' },
-  { bg: '#EF4444', hover: '#DC2626', label: 'Red' },
+  { bg: '#365E63', hover: '#3C666C', label: 'Dark Teal' },
+  { bg: '#8CD1BC', hover: '#7BC4D6', label: 'Mint Green' },
+  { bg: '#6B8E91', hover: '#5A7A7D', label: 'Medium Teal' },
+  { bg: '#CFE0E0', hover: '#B8D0D0', label: 'Light Teal' },
+  { bg: '#7BC4D6', hover: '#6BB3C5', label: 'Cyan Blue' },
 ];
 
 // Chart Heights

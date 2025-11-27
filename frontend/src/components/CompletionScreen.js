@@ -35,7 +35,7 @@ function CompletionScreen() {
               width: 200,
               height: 200,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%)',
+              background: 'linear-gradient(135deg, rgba(140, 209, 188, 0.2) 0%, rgba(123, 196, 214, 0.2) 100%)',
               animation: 'pulse 2s infinite',
               '@keyframes pulse': {
                 '0%, 100%': {
@@ -52,7 +52,7 @@ function CompletionScreen() {
           <CheckCircle 
             sx={{ 
               fontSize: 200, 
-              color: '#10b981',
+              color: '#8CD1BC', // Soft mint green
               position: 'relative',
               zIndex: 1,
               animation: 'scaleIn 0.6s ease-out',
@@ -78,21 +78,21 @@ function CompletionScreen() {
           sx={{ 
             fontWeight: 'bold', 
             mb: 2,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
+            color: '#666666' // Dark grey
           }}
         >
-          You're Done for Today!
+          Awesome!
         </Typography>
         
         <Typography 
           variant="h6" 
-          color="text.secondary" 
-          sx={{ mb: 4, maxWidth: 400 }}
+          sx={{ 
+            mb: 4, 
+            maxWidth: 400,
+            color: '#999999' // Medium grey
+          }}
         >
-          Great job completing your daily reflection. See you tomorrow for another day of self-discovery.
+          You are ready to proceed
         </Typography>
         
         <Button
@@ -104,13 +104,14 @@ function CompletionScreen() {
             px: 4,
             py: 1.5,
             borderRadius: 3,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            backgroundColor: '#8CD1BC', // Soft mint green
+            color: '#FFFFFF',
             '&:hover': {
-              background: 'linear-gradient(135deg, #764ba2 0%, #667eea 100%)',
+              backgroundColor: '#7BC4D6', // Cyan-blue
             }
           }}
         >
-          View Dashboard
+          Let's get started
         </Button>
       </Box>
     </Container>

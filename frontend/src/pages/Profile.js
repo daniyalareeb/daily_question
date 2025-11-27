@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { apiService } from '../services/api';
 import {
@@ -17,7 +17,10 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  Chip
+  Chip,
+  TextField,
+  InputAdornment,
+  IconButton
 } from '@mui/material';
 import {
   Person,
@@ -26,7 +29,10 @@ import {
   QuestionAnswer,
   Dashboard,
   Logout,
-  Refresh
+  Refresh,
+  Lock,
+  Visibility,
+  VisibilityOff
 } from '@mui/icons-material';
 
 function Profile() {
@@ -34,6 +40,18 @@ function Profile() {
   const [userStats, setUserStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Password change state
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
+  const [passwordChangeError, setPasswordChangeError] = useState('');
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState('');
 
   useEffect(() => {
     fetchUserStats();
@@ -69,6 +87,44 @@ function Profile() {
       await logout();
     } catch (error) {
       console.error('Logout error:', error);
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    setPasswordChangeError('');
+    setPasswordChangeSuccess('');
+
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      setPasswordChangeError('Please fill in all fields');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordChangeError('New password must be at least 6 characters long');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setPasswordChangeError('New passwords do not match');
+      return;
+    }
+
+    try {
+      setPasswordChangeLoading(true);
+      await apiService.changePassword(currentPassword, newPassword);
+      setPasswordChangeSuccess('Password changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      setTimeout(() => {
+        setShowPasswordChange(false);
+        setPasswordChangeSuccess('');
+      }, 2000);
+    } catch (err) {
+      setPasswordChangeError(err.response?.data?.detail || err.message || 'Failed to change password. Please check your current password.');
+    } finally {
+      setPasswordChangeLoading(false);
     }
   };
 
@@ -238,6 +294,130 @@ function Profile() {
             <Typography color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
               No responses yet. Start answering daily questions!
             </Typography>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Change Password Card */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+              Change Password
+            </Typography>
+            <Button
+              variant={showPasswordChange ? 'outlined' : 'contained'}
+              startIcon={<Lock />}
+              onClick={() => {
+                setShowPasswordChange(!showPasswordChange);
+                setPasswordChangeError('');
+                setPasswordChangeSuccess('');
+                setCurrentPassword('');
+                setNewPassword('');
+                setConfirmNewPassword('');
+              }}
+              size="small"
+            >
+              {showPasswordChange ? 'Cancel' : 'Change Password'}
+            </Button>
+          </Box>
+
+          {showPasswordChange && (
+            <Box component="form" onSubmit={handlePasswordChange} sx={{ mt: 2 }}>
+              {passwordChangeError && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {passwordChangeError}
+                </Alert>
+              )}
+              {passwordChangeSuccess && (
+                <Alert severity="success" sx={{ mb: 2 }}>
+                  {passwordChangeSuccess}
+                </Alert>
+              )}
+
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="currentPassword"
+                label="Current Password"
+                type={showCurrentPassword ? 'text' : 'password'}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                disabled={passwordChangeLoading}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        edge="end"
+                      >
+                        {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="newPassword"
+                label="New Password"
+                type={showNewPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                disabled={passwordChangeLoading}
+                helperText="At least 6 characters"
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        edge="end"
+                      >
+                        {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <TextField
+                margin="normal"
+                required
+                fullWidth
+                name="confirmNewPassword"
+                label="Confirm New Password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                disabled={passwordChangeLoading}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        edge="end"
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                disabled={passwordChangeLoading}
+                sx={{ mt: 3, mb: 2, py: 1.5 }}
+              >
+                {passwordChangeLoading ? <CircularProgress size={24} /> : 'Update Password'}
+              </Button>
+            </Box>
           )}
         </CardContent>
       </Card>
