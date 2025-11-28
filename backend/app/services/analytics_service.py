@@ -160,22 +160,14 @@ def calculate_daily_progress(responses: List[Dict]) -> Dict[str, any]:
     dates = sorted(set([r["date"] for r in responses]))
     
     now = datetime.now()
+    today = now.date()
+    yesterday = today - timedelta(days=1)
     current_month = now.strftime("%Y-%m")
     days_this_month = len([d for d in dates if d.startswith(current_month)])
     
     date_objects = [datetime.strptime(d, "%Y-%m-%d").date() for d in dates]
     
-    # Count consecutive days backwards from most recent submission date
-    current_streak = 0
-    if date_objects:
-        temp_streak = 0
-        check_date = max(date_objects)
-        while check_date in date_objects:
-            temp_streak += 1
-            check_date = check_date - timedelta(days=1)
-        current_streak = temp_streak
-    
-    # Find longest streak in history
+    # Find longest streak in history (calculate this first, before checking current streak)
     longest_streak = 0
     sorted_date_objects = sorted(date_objects)
     if len(sorted_date_objects) > 0:
@@ -189,6 +181,26 @@ def calculate_daily_progress(responses: List[Dict]) -> Dict[str, any]:
                 longest_streak = max(longest_streak, streak_count)
             else:
                 streak_count = 1
+    
+    # Count current streak - only if most recent submission is today or yesterday
+    # If the streak is broken (most recent submission is >1 day ago), current_streak = 0
+    current_streak = 0
+    if date_objects:
+        most_recent_date = max(date_objects)
+        days_since_last_submission = (today - most_recent_date).days
+        
+        # Streak is only active if last submission was today or yesterday
+        if days_since_last_submission <= 1:
+            # Count consecutive days backwards from most recent submission date
+            temp_streak = 0
+            check_date = most_recent_date
+            while check_date in date_objects:
+                temp_streak += 1
+                check_date = check_date - timedelta(days=1)
+            current_streak = temp_streak
+        else:
+            # Streak is broken - most recent submission is more than 1 day ago
+            current_streak = 0
     
     return {
         "days_this_month": days_this_month,
