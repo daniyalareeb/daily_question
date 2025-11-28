@@ -1,17 +1,22 @@
 # Python dependencies with pre-built wheels for Render compatibility
+# Fixed dependency resolution issues - using exact versions for stability
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-supabase>=2.24.0
+supabase==2.24.0
 python-dotenv==1.0.0
 pydantic==2.8.2
 python-multipart==0.0.6
 resend==0.8.0
 requests==2.31.0
-httpx[http2]==0.27.0
+httpx==0.27.0
 email-validator==2.1.0
 # Scalability dependencies
 slowapi==0.1.9
 redis==5.0.1
+# Explicit dependency versions to avoid resolution conflicts
+urllib3==2.0.7
+certifi>=2023.7.22
+idna>=3.4
 
 # Legacy dependencies (kept for reference, not used)
 # motor==3.3.2

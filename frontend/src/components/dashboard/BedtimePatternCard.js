@@ -74,3 +74,4 @@ const BedtimePatternCard = ({ bedtimePattern, title = 'Bedtime Pattern' }) => {
 
 export default BedtimePatternCard;
 
+

@@ -116,3 +116,4 @@ const ExerciseFrequencyCard = ({ exerciseFrequency, title = 'Exercise Frequency'
 
 export default ExerciseFrequencyCard;
 
+

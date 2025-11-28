@@ -118,27 +118,33 @@ async def get_all_questions():
         logger.debug("Returning questions from in-memory cache")
         return _questions_cache
     
-    # Check Redis cache
+    # Check Redis cache (with error handling)
     cache_key = "questions:all"
-    cached_result = await cache_service.get(cache_key)
-    if cached_result:
-        logger.info("Returning questions from Redis cache")
-        _questions_cache = cached_result  # Also store in memory
-        return cached_result
+    try:
+        cached_result = await cache_service.get(cache_key)
+        if cached_result:
+            logger.info("Returning questions from Redis cache")
+            _questions_cache = cached_result  # Also store in memory
+            return cached_result
+    except Exception as cache_error:
+        logger.warning(f"Cache service error (non-critical): {cache_error}, fetching from database")
     
     # Fetch from database
     logger.info("Fetching questions from database")
     try:
         questions = await _fetch_and_build_questions()
         
-        # Cache in both memory and Redis
+        # Cache in both memory and Redis (with error handling)
         _questions_cache = questions
-        await cache_service.set(cache_key, questions, ttl_seconds=3600)  # Cache for 1 hour
+        try:
+            await cache_service.set(cache_key, questions, ttl_seconds=3600)  # Cache for 1 hour
+        except Exception as cache_error:
+            logger.warning(f"Failed to cache questions (non-critical): {cache_error}")
         
         logger.info(f"Fetched and cached {len(questions)} questions")
         return questions
     except Exception as e:
-        logger.error(f"Error fetching questions: {e}")
+        logger.error(f"Error fetching questions: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to fetch questions: {str(e)}")
 
 @router.get("/{question_id}")

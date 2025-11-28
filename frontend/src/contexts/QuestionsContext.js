@@ -18,10 +18,26 @@ export function QuestionsProvider({ children }) {
       setLoading(true);
       setError(null);
       const response = await apiService.getQuestions();
-      setQuestions(response.data);
+      
+      if (response && response.data) {
+        setQuestions(response.data);
+      } else {
+        throw new Error('Invalid response from server');
+      }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to fetch questions');
-      console.error('Error fetching questions:', err);
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to fetch questions';
+      setError(errorMessage);
+      console.error('Error fetching questions:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        code: err.code
+      });
+      
+      // If it's a network error, provide more helpful message
+      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        setError('Unable to connect to server. Please check your internet connection and ensure the backend is running.');
+      }
     } finally {
       setLoading(false);
     }

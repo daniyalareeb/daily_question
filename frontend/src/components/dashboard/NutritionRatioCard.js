@@ -64,3 +64,4 @@ const NutritionRatioCard = ({ nutritionRatio, title = 'Nutrition: Healthy vs Eas
 
 export default NutritionRatioCard;
 
+
