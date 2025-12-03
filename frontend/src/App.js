@@ -13,7 +13,7 @@ import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
 import Questions from './pages/Questions';
 import Dashboard from './pages/Dashboard';
-import Profile from './pages/Profile';
+import ChangePassword from './pages/ChangePassword';
 import './App.css';
 
 // Create Material-UI theme with teal/grey palette
@@ -169,10 +169,10 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/profile" 
+                  path="/change-password" 
                   element={
                     <ProtectedRoute>
-                      <Profile />
+                      <ChangePassword />
                     </ProtectedRoute>
                   } 
                 />

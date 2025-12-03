@@ -105,7 +105,7 @@ async def _fetch_and_build_questions() -> List[dict]:
         
         return questions
     except Exception as e:
-        logger.error(f"Error fetching questions: {e}")
+        logger.error(f"Error fetching questions: {e}", exc_info=True)
         raise
 
 @router.get("/")
@@ -113,9 +113,8 @@ async def get_all_questions():
     """Get all questions with their options and sub-questions (cached)"""
     global _questions_cache
     
-    # Check in-memory cache first
+    # Check in-memory cache first (fastest)
     if _questions_cache is not None:
-        logger.debug("Returning questions from in-memory cache")
         return _questions_cache
     
     # Check Redis cache (with error handling)
@@ -123,14 +122,12 @@ async def get_all_questions():
     try:
         cached_result = await cache_service.get(cache_key)
         if cached_result:
-            logger.info("Returning questions from Redis cache")
             _questions_cache = cached_result  # Also store in memory
             return cached_result
-    except Exception as cache_error:
-        logger.warning(f"Cache service error (non-critical): {cache_error}, fetching from database")
+    except Exception:
+        pass  # Silently fall through to database fetch
     
     # Fetch from database
-    logger.info("Fetching questions from database")
     try:
         questions = await _fetch_and_build_questions()
         
@@ -138,10 +135,9 @@ async def get_all_questions():
         _questions_cache = questions
         try:
             await cache_service.set(cache_key, questions, ttl_seconds=3600)  # Cache for 1 hour
-        except Exception as cache_error:
-            logger.warning(f"Failed to cache questions (non-critical): {cache_error}")
+        except Exception:
+            pass  # Silently continue if cache fails
         
-        logger.info(f"Fetched and cached {len(questions)} questions")
         return questions
     except Exception as e:
         logger.error(f"Error fetching questions: {e}", exc_info=True)

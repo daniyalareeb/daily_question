@@ -75,7 +75,6 @@ export const CHART_HEIGHTS = {
   bar: 250,
   doughnut: 300,
   keywords: 300,
-  wordCloud: 450,
 };
 
 // Spacing Constants
@@ -96,20 +95,6 @@ export const SPACING = {
   hero: {
     mb: 3, // Spacing after hero section
   },
-};
-
-// Word Cloud Configuration
-export const WORD_CLOUD_CONFIG = {
-  fontSizes: [80, 200], // Much larger font size range: min 80px, max 200px for better visibility
-  minSize: 80, // Minimum font size - ensures even low-frequency words (2-3 uses) are large and visible
-  padding: 1, // Reduced padding to fill more space
-  gridSize: 1, // Reduced grid size for tighter packing
-  rotations: 2,
-  rotationSteps: 2,
-  fontFamily: 'Inter, sans-serif',
-  fontWeight: 'bold',
-  scale: 'linear', // Use linear scale for more consistent sizing across frequencies
-  containerHeight: 600, // Increased container height
 };
 
 // Chart Default Options
@@ -292,5 +277,37 @@ export const LOADING_MESSAGES = {
 export const ERROR_MESSAGES = {
   failedToLoad: 'Failed to load dashboard summary',
   loginRequired: 'Make sure you have logged in and submitted at least one response.',
+};
+
+// Unified Health Chart Colors
+export const UNIFIED_CHART_COLORS = {
+  sleep: '#4CAF50', // Green
+  exercise: '#F44336', // Red
+  food: '#FF9800', // Orange
+  water: '#03A9F4', // Light blue
+};
+
+// Health Metric Card Configuration
+export const HEALTH_CARD_CONFIG = {
+  sleep: {
+    name: 'Sleep',
+    bgColor: '#4CAF50',
+    iconColor: 'white',
+  },
+  exercise: {
+    name: 'Exercise',
+    bgColor: 'white',
+    iconColor: '#F44336',
+  },
+  food: {
+    name: 'Food',
+    bgColor: 'white',
+    iconColor: '#FF9800',
+  },
+  water: {
+    name: 'Water',
+    bgColor: 'white',
+    iconColor: '#03A9F4',
+  },
 };
 

@@ -4,8 +4,8 @@ A modern React frontend for the Daily Self-Reflection Tracking Web App.
 
 ## 🚀 Features
 
-- **🔐 Firebase Authentication**: Secure user registration and login
-- **📝 Daily Questions**: Answer 6 reflection questions each day
+- **🔐 Supabase Authentication**: Secure user registration and login
+- **📝 Daily Questions**: Answer 8 reflection questions each day
 - **📊 Analytics Dashboard**: View insights and trends from your responses
 - **🎲 Question Randomization**: Optional random order for questions
 - **📱 Responsive Design**: Works on desktop and mobile
@@ -14,12 +14,12 @@ A modern React frontend for the Daily Self-Reflection Tracking Web App.
 
 ## 🛠️ Tech Stack
 
-- **React 18**: Modern React with hooks
+- **React 19**: Modern React with hooks
 - **Material-UI**: Beautiful component library
-- **Firebase**: Authentication and user management
+- **Supabase**: Authentication and user management
 - **Axios**: HTTP client for API communication
 - **React Router**: Client-side routing
-- **Recharts**: Data visualization library
+- **Chart.js**: Data visualization library
 
 ## 📦 Installation
 
@@ -76,24 +76,17 @@ npm start
 
 ## 🔧 Configuration
 
-### Firebase Setup
-Update `src/firebase.js` with your Firebase configuration:
+### Environment Variables
+Create a `.env` file in the frontend directory:
 
-```javascript
-const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  // ... other config
-};
+```bash
+REACT_APP_API_URL=http://localhost:8000
+REACT_APP_SUPABASE_URL=https://your-project.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=your_anon_key_here
 ```
 
 ### API Configuration
-Update `src/services/api.js` if your backend runs on a different port:
-
-```javascript
-const API_BASE_URL = 'http://localhost:8000'; // Change if needed
-```
+The API URL is configured via `REACT_APP_API_URL` environment variable (default: http://localhost:8000)
 
 ## 🎨 Customization
 
@@ -118,14 +111,14 @@ Questions are fetched from the backend API. To modify questions, update the back
 
 ## 📊 Data Flow
 
-1. **User Authentication**: Firebase handles user registration/login
+1. **User Authentication**: Supabase handles user registration/login
 2. **Questions**: Fetched from backend API (`/api/questions/`)
 3. **Responses**: Submitted to backend API (`/api/responses/`)
 4. **Analytics**: Retrieved from backend API (`/api/dashboard/`)
 
 ## 🔒 Security
 
-- **Firebase Authentication**: Secure user management
+- **Supabase Authentication**: Secure user management
 - **JWT Tokens**: Automatic token handling for API requests
 - **Protected Routes**: Authentication required for app features
 - **Input Validation**: Client-side validation for forms
@@ -147,9 +140,8 @@ Create `.env` file for production:
 
 ```env
 REACT_APP_API_URL=https://your-api-domain.com
-REACT_APP_FIREBASE_API_KEY=your-firebase-api-key
-REACT_APP_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=your-project-id
+REACT_APP_SUPABASE_URL=https://your-project.supabase.co
+REACT_APP_SUPABASE_ANON_KEY=your_anon_key_here
 ```
 
 ## 🐛 Troubleshooting
@@ -160,13 +152,13 @@ REACT_APP_FIREBASE_PROJECT_ID=your-project-id
    - Ensure backend is running on http://localhost:8000
    - Check CORS settings in backend
 
-2. **Firebase Authentication Error**:
-   - Verify Firebase configuration
-   - Enable Email/Password authentication in Firebase Console
+2. **Supabase Authentication Error**:
+   - Verify Supabase configuration in `.env`
+   - Check that `REACT_APP_SUPABASE_URL` and `REACT_APP_SUPABASE_ANON_KEY` are set correctly
 
 3. **API Request Failures**:
    - Check if user is authenticated
-   - Verify Firebase token is valid
+   - Verify Supabase token is valid
 
 ### Debug Mode
 Enable debug logging:
@@ -192,7 +184,7 @@ The frontend integrates with these backend endpoints:
 
 ## 🎯 Next Steps
 
-1. **Enable Firebase Authentication** in Firebase Console
+1. **Set up Supabase project** and configure environment variables
 2. **Test the complete flow**: Register → Login → Answer Questions → View Dashboard
 3. **Customize the UI** to match your brand
 4. **Deploy to production** when ready

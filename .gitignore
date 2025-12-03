@@ -41,3 +41,8 @@ Thumbs.db
 # Firebase secrets (should not be committed)
 **/firebase-adminsdk*.json
 **/*firebase*.json
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/

@@ -60,13 +60,34 @@ function Login() {
     try {
       setError('');
       setLoading(true);
-      await login(email, password);
-      navigate('/questions');
+      const result = await login(email, password);
+      
+      // Navigate immediately after successful login
+      if (result && result.user) {
+        navigate('/questions');
+      }
     } catch (err) {
-      // Extract error message from Supabase
-      const errorMessage = err.message || 'Failed to log in. Please check your credentials.';
+      // Extract error message
+      let errorMessage = 'Failed to log in. Please check your credentials.';
+      
+      if (err.userMessage) {
+        // User-friendly message from interceptor
+        errorMessage = err.userMessage;
+      } else if (err.response) {
+        // Backend error
+        errorMessage = err.response.data?.detail || err.response.data?.message || errorMessage;
+      } else if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorMessage = 'Connection timeout. Please make sure the backend server is running.';
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network')) {
+        errorMessage = 'Network error. Please check your connection and ensure the backend is running.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       setError(errorMessage);
-      console.error('Login error:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Login error:', err);
+      }
     } finally {
       setLoading(false);
     }

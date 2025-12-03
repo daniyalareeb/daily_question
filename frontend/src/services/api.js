@@ -10,6 +10,7 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Important for CORS with credentials
+  timeout: 20000, // 20 second timeout - increased for complex queries
 });
 
 // Add auth token to requests from localStorage
@@ -30,13 +31,29 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle timeout errors
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      if (isDevelopment) {
+        console.error('Request timeout - Backend may not be running:', error);
+        console.error('Make sure backend is running on:', API_BASE_URL);
+      }
+      // Create a more user-friendly error
+      error.userMessage = 'Connection timeout. Please check if the server is running.';
+      return Promise.reject(error);
+    }
+    
     // Log CORS errors specifically
     if (error.code === 'ERR_NETWORK' || error.message?.includes('CORS')) {
-      console.error('CORS Error detected:', error);
-      console.error('This might be due to:');
-      console.error('1. Backend server not running');
-      console.error('2. Browser cache issue - try hard refresh (Ctrl+Shift+R)');
-      console.error('3. Invalid authentication token');
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      if (isDevelopment) {
+        console.error('CORS Error detected:', error);
+        console.error('This might be due to:');
+        console.error('1. Backend server not running');
+        console.error('2. Browser cache issue - try hard refresh (Ctrl+Shift+R)');
+        console.error('3. Invalid authentication token');
+      }
+      error.userMessage = 'Network error. Please check your connection.';
     }
     
     if (error.response?.status === 401) {
@@ -96,8 +113,8 @@ export const apiService = {
     return api.get(`/api/dashboard/trend-line/${encodeURIComponent(optionText)}?${params.toString()}`);
   },
   
-  getDashboardSummary: () => 
-    api.get('/api/dashboard/summary'),
+  getDashboardSummary: (forceRefresh = false) =>
+    api.get('/api/dashboard/summary', { params: { force_refresh: forceRefresh } }),
   
   getWeeklyMood: () => 
     api.get('/api/dashboard/weekly-mood'),
@@ -140,15 +157,15 @@ export const apiService = {
     api.get(`/api/dashboard/hydration/consistency?days=${days}`),
 
   // Optimized unified health & wellness endpoint (fetches all data in one request)
-  getHealthWellnessAll: (days = 30) => 
-    api.get(`/api/dashboard/health-wellness?days=${days}`),
+  getHealthWellnessAll: (days = 30, forceRefresh = false) => 
+    api.get(`/api/dashboard/health-wellness?days=${days}&force_refresh=${forceRefresh}`),
 
   // Auth
   login: (email, password) =>
     api.post('/api/auth/login', { email, password }),
   
-  register: (email, password) =>
-    api.post('/api/auth/register', { email, password }),
+  register: (email, password, fullName) =>
+    api.post('/api/auth/register', { email, password, full_name: fullName }),
   
   verifyToken: () => 
     api.get('/api/auth/verify'),

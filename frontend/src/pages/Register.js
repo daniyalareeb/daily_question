@@ -16,6 +16,7 @@ import {
 import { QuestionAnswer, Visibility, VisibilityOff } from '@mui/icons-material';
 
 function Register() {
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -64,8 +65,19 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!email || !password || !confirmPassword) {
+    if (!fullName || !email || !password || !confirmPassword) {
       setError('Please fill in all fields');
+      return;
+    }
+    
+    // Validate full name length
+    if (fullName.length > 100) {
+      setError('Full name must be less than 100 characters');
+      return;
+    }
+    
+    if (!fullName.trim()) {
+      setError('Full name cannot be only whitespace');
       return;
     }
 
@@ -74,15 +86,48 @@ function Register() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    // Password strength validation
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+    
+    if (password.length > 128) {
+      setError('Password must be less than 128 characters');
+      return;
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      setError('Password must contain at least one uppercase letter');
+      return;
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      setError('Password must contain at least one lowercase letter');
+      return;
+    }
+    
+    if (!/\d/.test(password)) {
+      setError('Password must contain at least one number');
+      return;
+    }
+    
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      setError('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)');
+      return;
+    }
+    
+    // Check for common weak passwords
+    const commonPasswords = ['password', '12345678', 'qwerty', 'abc123', 'password123'];
+    if (commonPasswords.includes(password.toLowerCase())) {
+      setError('Password is too common. Please choose a stronger password');
       return;
     }
 
     try {
       setError('');
       setLoading(true);
-      const result = await signup(email, password);
+      const result = await signup(email, password, fullName);
       
       if (result.needsVerification) {
         // Redirect to verify email page
@@ -133,11 +178,22 @@ function Register() {
               margin="normal"
               required
               fullWidth
+              id="fullName"
+              label="Full Name"
+              name="fullName"
+              autoComplete="name"
+              autoFocus
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
+            <TextField
+              margin="normal"
+              required
+              fullWidth
               id="email"
               label="Email Address"
               name="email"
               autoComplete="email"
-              autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

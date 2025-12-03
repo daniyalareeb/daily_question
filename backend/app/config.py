@@ -14,4 +14,5 @@ RESEND_API_KEY = os.getenv("RESEND_API_KEY")
 
 REMINDER_TIME = os.getenv("REMINDER_TIME", "20:00")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 

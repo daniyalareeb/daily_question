@@ -94,62 +94,6 @@ export const getDaysInCurrentMonth = () => {
 };
 
 /**
- * Format word cloud data for react-wordcloud2
- * @param {Object} topKeywords - Top keywords object with top_10 and counts
- * @returns {Array<[string, number]>} Array of [text, value] tuples
- */
-export const formatWordCloudData = (topKeywords) => {
-  if (!topKeywords?.top_10 || !Array.isArray(topKeywords.top_10) || topKeywords.top_10.length === 0) {
-    return [];
-  }
-  
-  // Get all counts to calculate min/max for normalization
-  const counts = topKeywords.top_10
-    .map(keyword => {
-      const count = (topKeywords?.counts && typeof topKeywords.counts === 'object') 
-        ? (topKeywords.counts[keyword] || 1) 
-        : 1;
-      return Math.max(1, Number(count) || 1);
-    });
-  
-  const minCount = Math.min(...counts);
-  const maxCount = Math.max(...counts);
-  const range = maxCount - minCount || 1;
-  
-  // Boost frequencies: ensure minimum value is at least 5, and scale up
-  // This ensures even words used 2-3 times appear much larger
-  return topKeywords.top_10
-    .filter(keyword => keyword && typeof keyword === 'string' && keyword.trim().length > 0)
-    .map(keyword => {
-      const count = (topKeywords?.counts && typeof topKeywords.counts === 'object') 
-        ? (topKeywords.counts[keyword] || 1) 
-        : 1;
-      const normalizedCount = Math.max(1, Number(count) || 1);
-      
-      // Boost the frequency: minimum 10, scale up based on relative frequency
-      // This ensures even low-frequency words (2-3 uses) get a value of at least 10
-      const boostedValue = normalizedCount === minCount 
-        ? 10  // Minimum boost for least frequent words
-        : 10 + Math.round(((normalizedCount - minCount) / range) * 40); // Scale up to 50 max
-      
-      return [String(keyword).trim(), boostedValue];
-    })
-    .filter(item => item[0] && item[1] > 0);
-};
-
-/**
- * Validate word cloud data
- * @param {Array} wordCloudData - Word cloud data array
- * @returns {boolean} True if valid
- */
-export const isValidWordCloudData = (wordCloudData) => {
-  return wordCloudData && 
-    Array.isArray(wordCloudData) && 
-    wordCloudData.length > 0 &&
-    wordCloudData.every(item => Array.isArray(item) && item.length === 2 && item[0] && item[1] > 0);
-};
-
-/**
  * Validate daily sentiment data
  * @param {Object} dailySentiment - Daily sentiment object
  * @returns {boolean} True if valid

@@ -90,8 +90,41 @@ function ResetPassword() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    // Password strength validation
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+    
+    if (password.length > 128) {
+      setError('Password must be less than 128 characters');
+      return;
+    }
+    
+    if (!/[A-Z]/.test(password)) {
+      setError('Password must contain at least one uppercase letter');
+      return;
+    }
+    
+    if (!/[a-z]/.test(password)) {
+      setError('Password must contain at least one lowercase letter');
+      return;
+    }
+    
+    if (!/\d/.test(password)) {
+      setError('Password must contain at least one number');
+      return;
+    }
+    
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      setError('Password must contain at least one special character (!@#$%^&*(),.?":{}|<>)');
+      return;
+    }
+    
+    // Check for common weak passwords
+    const commonPasswords = ['password', '12345678', 'qwerty', 'abc123', 'password123'];
+    if (commonPasswords.includes(password.toLowerCase())) {
+      setError('Password is too common. Please choose a stronger password');
       return;
     }
 
@@ -182,7 +215,7 @@ function ResetPassword() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={success || loading}
-              helperText="Password must be at least 6 characters"
+              helperText="Must be at least 8 characters with uppercase, lowercase, number, and special character"
               inputRef={passwordInputRef}
               InputProps={{
                 endAdornment: (

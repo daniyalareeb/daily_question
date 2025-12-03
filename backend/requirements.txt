@@ -18,11 +18,3 @@ urllib3==2.0.7
 certifi>=2023.7.22
 idna>=3.4
 
-# Legacy dependencies (kept for reference, not used)
-# motor==3.3.2
-# pymongo==4.6.0
-# firebase-admin==6.4.0
-# nltk==3.8.1
-# pywebpush==1.14.0
-# python-jose[cryptography]==3.3.0
-# passlib[bcrypt]==1.7.4

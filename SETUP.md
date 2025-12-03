@@ -111,7 +111,7 @@ cd frontend
 npm install
 ```
 
-This will automatically remove Firebase dependencies and install Supabase.
+This will install all required dependencies including Supabase.
 
 ### 4. Test Frontend Configuration
 
@@ -205,8 +205,6 @@ The app will open at http://localhost:3000
 
 ## Notes
 
-- Old Firebase/MongoDB code is commented out but not deleted (as requested)
-- Data in MongoDB/Firebase is preserved (not migrated automatically)
 - The seed script will ask before overwriting existing questions
 - All 8 questions are included in the seed script with proper structure
 

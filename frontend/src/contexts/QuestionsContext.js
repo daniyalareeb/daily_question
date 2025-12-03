@@ -25,18 +25,24 @@ export function QuestionsProvider({ children }) {
         throw new Error('Invalid response from server');
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.detail || err.message || 'Failed to fetch questions';
-      setError(errorMessage);
-      console.error('Error fetching questions:', {
-        message: err.message,
-        response: err.response?.data,
-        status: err.response?.status,
-        code: err.code
-      });
+      // Better error message based on error type
+      let errorMessage = 'Failed to fetch questions.';
       
-      // If it's a network error, provide more helpful message
-      if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
-        setError('Unable to connect to server. Please check your internet connection and ensure the backend is running.');
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorMessage = 'Connection timeout. Please make sure the backend server is running on ' + (process.env.REACT_APP_API_URL || 'http://localhost:8000');
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network')) {
+        errorMessage = 'Network error. Please check your connection and ensure the backend is running.';
+      } else if (err.response) {
+        errorMessage = err.response.data?.detail || err.message || errorMessage;
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      
+      setError(errorMessage);
+      
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching questions:', err);
       }
     } finally {
       setLoading(false);
@@ -49,7 +55,9 @@ export function QuestionsProvider({ children }) {
       const response = await apiService.getQuestionById(id);
       return response.data;
     } catch (err) {
-      console.error('Error fetching question:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching question:', err);
+      }
       throw err;
     }
   };
@@ -60,7 +68,9 @@ export function QuestionsProvider({ children }) {
       const response = await apiService.submitResponse(responseData);
       return response.data;
     } catch (err) {
-      console.error('Error submitting responses:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error submitting responses:', err);
+      }
       throw err;
     }
   };
@@ -71,7 +81,9 @@ export function QuestionsProvider({ children }) {
       const response = await apiService.getTodayStatus();
       return response.data;
     } catch (err) {
-      console.error('Error checking today status:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error checking today status:', err);
+      }
       throw err;
     }
   };
@@ -82,7 +94,9 @@ export function QuestionsProvider({ children }) {
       const response = await apiService.getUserResponses(startDate, endDate);
       return response.data;
     } catch (err) {
-      console.error('Error fetching user responses:', err);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching user responses:', err);
+      }
       throw err;
     }
   };

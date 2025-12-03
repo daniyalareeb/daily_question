@@ -856,3 +856,55 @@ def calculate_hydration_consistency(responses: List[Dict], question_id: str, day
         "adequate_percentage": round(adequate_percentage, 1),
         "consistency_score": round(adequate_percentage, 1)  # Same as percentage
     }
+
+def calculate_hydration_frequency(responses: List[Dict], question_id: str, days: int = 30, options_map: Dict[str, Dict] = None) -> Dict[str, any]:
+    """Calculate hydration frequency over time (Q3: How was your water Intake today?)"""
+    if not responses:
+        return {}
+    
+    now = datetime.utcnow()
+    daily_hydration = {}
+    responses_by_date = {}
+    
+    # Group responses by date
+    for r in responses:
+        date = r.get("date")
+        if date:
+            if date not in responses_by_date:
+                responses_by_date[date] = []
+            responses_by_date[date].append(r)
+    
+    # Calculate hydration for each day
+    for i in range(days):
+        target_date = (now - timedelta(days=i)).date()
+        date_str = target_date.strftime("%Y-%m-%d")
+        day_responses = responses_by_date.get(date_str, [])
+        
+        if not day_responses:
+            continue
+        
+        adequate = False
+        score = 0  # 0 = low, 100 = adequate
+        
+        for response in day_responses:
+            answers = response.get("answers", [])
+            for answer in answers:
+                if str(answer.get("question_id")) == str(question_id):
+                    option_id = answer.get("selected_option_id")
+                    if option_id:
+                        option_text = get_option_text_from_id(str(option_id), options_map or {})
+                        if "Adequate" in option_text or ">" in option_text:
+                            adequate = True
+                            score = 100
+                        elif "Low" in option_text or "<" in option_text:
+                            adequate = False
+                            score = 0
+                        break
+        
+        if adequate or score == 0:  # Only add if we have data
+            daily_hydration[date_str] = {
+                "adequate": adequate,
+                "score": score
+            }
+    
+    return daily_hydration

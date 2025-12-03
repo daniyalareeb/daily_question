@@ -107,9 +107,17 @@ async def get_responses(
 async def get_all_responses_for_analytics(user_id: str, max_responses: int = 2000) -> List[Dict]:
     """Get all user responses for analytics"""
     try:
-        result = supabase.table("responses").select("*").eq("user_id", user_id).order("submitted_at", desc=True).limit(max_responses).execute()
+        # Ensure user_id is a string (UUID format)
+        user_id_str = str(user_id)
+        
+        # Fetch responses - order by date (ascending) for better analytics processing
+        result = supabase.table("responses").select("*").eq("user_id", user_id_str).order("date", desc=False).limit(max_responses).execute()
         
         responses = result.data if result.data else []
+        
+        # Only log warnings if no responses (not every time)
+        if len(responses) == 0:
+            logger.debug(f"No responses found for user")
         
         # Fetch answers for all responses
         if responses:

@@ -109,10 +109,6 @@ function Navbar() {
               open={Boolean(anchorEl)}
               onClose={handleMenuClose}
             >
-              <MenuItem onClick={() => { navigate('/profile'); handleMenuClose(); }}>
-                <Person sx={{ mr: 1 }} />
-                Profile
-              </MenuItem>
               <MenuItem onClick={handleLogout}>
                 <Logout sx={{ mr: 1 }} />
                 Logout

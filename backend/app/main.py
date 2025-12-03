@@ -12,6 +12,7 @@ from app.cache import cache_service
 from app.config import ENVIRONMENT
 import asyncio
 import logging
+from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
 if ENVIRONMENT == "development":
@@ -35,9 +36,9 @@ app.add_middleware(
     allow_origin_regex=r"https://.*\.(vercel\.app|onrender\.com)",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH", "HEAD"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=600,
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["Content-Type", "Content-Length", "X-Total-Count"],
+    max_age=3600,  # Increased from 600 to 3600 for better caching
 )
 
 # Initialize rate limiter (after CORS)
@@ -45,10 +46,27 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+# Security headers middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        # Add security headers
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Content Security Policy
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:;"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
 # Add exception handler to ensure CORS headers on all HTTP exceptions
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Ensure CORS headers are added to all HTTP exceptions"""
+    import re
     origin = request.headers.get("origin")
     response = JSONResponse(
         status_code=exc.status_code,
@@ -56,10 +74,19 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
     
     # Add CORS headers if origin is allowed
-    if origin and origin in origins:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Expose-Headers"] = "*"
+    if origin:
+        # Check if origin is in allowed list or matches regex
+        is_allowed = origin in origins
+        if not is_allowed:
+            # Check regex pattern
+            pattern = re.compile(r"https://.*\.(vercel\.app|onrender\.com)")
+            is_allowed = bool(pattern.match(origin))
+        
+        if is_allowed:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, Origin, X-Requested-With"
     
     return response
 

@@ -28,10 +28,12 @@ from app.services.analytics_service import (
     calculate_nutrition_score,
     calculate_exercise_frequency,
     calculate_exercise_distribution,
-    calculate_hydration_consistency
+    calculate_hydration_consistency,
+    calculate_hydration_frequency
 )
 from app.supabase_client import supabase
 from app.cache import cache_service
+from app.config import ENVIRONMENT
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from typing import Optional, Dict
@@ -103,20 +105,41 @@ def get_cached_options_map() -> Dict[str, Dict]:
 @limiter.limit("30/minute")
 async def get_dashboard_summary(
     request: Request,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    force_refresh: bool = Query(False, description="Force refresh cache")
 ):
     """Get comprehensive dashboard summary"""
     user_id = current_user["uid"]
+    user_email = current_user.get("email", "unknown")
     
     cache_key = cache_service._make_key("dashboard_summary", user_id)
-    cached_result = await cache_service.get(cache_key)
-    if cached_result:
-        logger.info(f"Returning cached dashboard summary for user {user_id}, total_reflections: {cached_result.get('total_reflections', 0)}")
-        return cached_result
     
-    logger.info(f"Fetching fresh dashboard data for user {user_id}")
+    # If forcing refresh, clear the cache first
+    if force_refresh:
+        if ENVIRONMENT == "development":
+            logger.info(f"Force refresh requested - clearing cache for user {user_id}")
+        await cache_service.delete(cache_key)
+        # Also invalidate all user cache
+        await cache_service.invalidate_user_cache(user_id)
+    
+    # Only use cache if not forcing refresh
+    if not force_refresh:
+        cached_result = await cache_service.get(cache_key)
+        if cached_result:
+            # Only log in development
+            if ENVIRONMENT == "development":
+                logger.info(f"Returning cached dashboard summary for user {user_id}")
+            return cached_result
+    
+    # Only log in development to reduce overhead
+    if ENVIRONMENT == "development":
+        logger.info(f"Fetching fresh dashboard data for user {user_id}")
+    
     responses = await get_all_responses_for_analytics(user_id)
-    logger.info(f"Found {len(responses)} responses for user {user_id}")
+    
+    # Only log in development
+    if ENVIRONMENT == "development" and len(responses) > 0:
+        logger.debug(f"Sample response dates: {[r.get('date') for r in responses[:5]]}")
     
     # Build options map for analytics (cached)
     options_map = get_cached_options_map()
@@ -498,24 +521,35 @@ async def get_hydration_consistency(
 @limiter.limit("30/minute")
 async def get_health_wellness_all(
     request: Request,
-    days: int = Query(30, ge=7, le=90, description="Number of days to analyze"),
-    current_user: dict = Depends(get_current_user)
+    days: int = Query(30, ge=7, le=365, description="Number of days to analyze (max 1 year)"),
+    current_user: dict = Depends(get_current_user),
+    force_refresh: bool = Query(False, description="Force refresh cache")
 ):
     """Get all health & wellness data in a single optimized request"""
     user_id = current_user["uid"]
+    user_email = current_user.get("email", "unknown")
     
-    # Check cache first
+    # Check cache first (unless forcing refresh)
     cache_key = cache_service._make_key("health_wellness", user_id, days)
+    
+    if force_refresh:
+        if ENVIRONMENT == "development":
+            logger.info(f"Force refresh requested - clearing health wellness cache for user {user_id}")
+        await cache_service.delete(cache_key)
+    
     cached_result = await cache_service.get(cache_key)
     if cached_result:
-        logger.info(f"Returning cached health & wellness data for user {user_id}")
+        # Only log in development
+        if ENVIRONMENT == "development":
+            logger.info(f"Returning cached health & wellness data for user {user_id}")
         return cached_result
     
-    logger.info(f"Fetching fresh health & wellness data for user {user_id}")
+    # Only log in development
+    if ENVIRONMENT == "development":
+        logger.info(f"Fetching fresh health & wellness data for user {user_id}")
     
     # Fetch responses ONCE (this is the expensive operation)
     responses = await get_all_responses_for_analytics(user_id)
-    logger.info(f"Found {len(responses)} responses for user {user_id}")
     
     # Get all question IDs ONCE (cached)
     question_ids = get_all_question_ids()
@@ -547,6 +581,7 @@ async def get_health_wellness_all(
     
     # Hydration metrics
     hydration_consistency = calculate_hydration_consistency(responses, q3_id, days, options_map) if q3_id else {"adequate_days": 0, "low_days": 0, "total_days": 0, "adequate_percentage": 0, "consistency_score": 0}
+    hydration_frequency = calculate_hydration_frequency(responses, q3_id, days, options_map) if q3_id else {}
     
     result = {
         "sleep": {
@@ -566,6 +601,7 @@ async def get_health_wellness_all(
         },
         "hydration": {
             "consistency": hydration_consistency,
+            "frequency": hydration_frequency,
         },
     }
     

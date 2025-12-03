@@ -66,6 +66,18 @@ CREATE TABLE IF NOT EXISTS response_answers (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- 7. User profiles table
+CREATE TABLE IF NOT EXISTS user_profiles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name TEXT,
+    display_name TEXT,
+    pref_reminder BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(user_id)
+);
+
 -- Create indexes for performance
 CREATE INDEX IF NOT EXISTS idx_questions_order ON questions("order");
 CREATE INDEX IF NOT EXISTS idx_question_options_question_id ON question_options(question_id);
@@ -76,6 +88,7 @@ CREATE INDEX IF NOT EXISTS idx_responses_user_submitted ON responses(user_id, su
 CREATE INDEX IF NOT EXISTS idx_response_answers_response_id ON response_answers(response_id);
 CREATE INDEX IF NOT EXISTS idx_response_answers_question_id ON response_answers(question_id);
 CREATE INDEX IF NOT EXISTS idx_response_answers_sub_question_id ON response_answers(sub_question_id);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_user_id ON user_profiles(user_id);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
@@ -84,6 +97,7 @@ ALTER TABLE sub_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sub_question_options ENABLE ROW LEVEL SECURITY;
 ALTER TABLE responses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE response_answers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for questions (public read, admin write)
 CREATE POLICY "Questions are viewable by everyone" ON questions
@@ -122,4 +136,26 @@ CREATE POLICY "Users can insert their own response answers" ON response_answers
             AND responses.user_id = auth.uid()
         )
     );
+
+-- RLS Policies for user_profiles (users can only see/update their own)
+CREATE POLICY "Users can view their own profile" ON user_profiles
+    FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own profile" ON user_profiles
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own profile" ON user_profiles
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Trigger to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON user_profiles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
