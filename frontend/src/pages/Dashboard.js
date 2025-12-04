@@ -150,9 +150,9 @@ function Dashboard() {
       <Container 
         maxWidth="xl" 
         sx={{ 
-          mb: 4,
-          px: { xs: 2, sm: 3, md: 4 },
-          mt: 3,
+          mb: { xs: 3, sm: 4 },
+          px: { xs: 1.5, sm: 2, md: 3, lg: 4 },
+          mt: { xs: 2, sm: 3 },
         }}
       >
         {/* Stats Section */}
@@ -164,7 +164,7 @@ function Dashboard() {
         />
 
         {/* Health Metric Cards - 2x2 Grid */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }} sx={{ mb: { xs: 3, sm: 4 } }}>
           <Grid item xs={12} sm={6}>
             <HealthMetricCard
               type="sleep"

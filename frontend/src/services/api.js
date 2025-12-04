@@ -31,7 +31,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle timeout errors
+    // Handle timeout errors - don't logout on timeout
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
       const isDevelopment = process.env.NODE_ENV === 'development';
       if (isDevelopment) {
@@ -43,7 +43,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     
-    // Log CORS errors specifically
+    // Log CORS errors specifically - don't logout on network errors
     if (error.code === 'ERR_NETWORK' || error.message?.includes('CORS')) {
       const isDevelopment = process.env.NODE_ENV === 'development';
       if (isDevelopment) {
@@ -54,16 +54,28 @@ api.interceptors.response.use(
         console.error('3. Invalid authentication token');
       }
       error.userMessage = 'Network error. Please check your connection.';
+      return Promise.reject(error);
     }
     
+    // Only logout on actual 401 auth errors, not network errors
     if (error.response?.status === 401) {
-      // Token is invalid or expired, clear it
-      localStorage.removeItem('jwtToken');
-      // Dispatch custom event to notify AuthContext
-      window.dispatchEvent(new CustomEvent('auth:logout'));
-      // Redirect to login if not already there
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-        window.location.href = '/login';
+      // Check if this is a network-related 401 (no response body) vs actual auth failure
+      const isNetworkError = !error.response.data || 
+                           error.code === 'ERR_NETWORK' || 
+                           error.code === 'ECONNABORTED';
+      
+      if (!isNetworkError) {
+        // Actual authentication error - token is invalid or expired
+        localStorage.removeItem('jwtToken');
+        // Dispatch custom event to notify AuthContext
+        window.dispatchEvent(new CustomEvent('auth:logout'));
+        // Redirect to login if not already there
+        if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+          window.location.href = '/login';
+        }
+      } else {
+        // Network error causing 401 - don't logout, just reject
+        error.userMessage = 'Network error. Please check your connection.';
       }
     }
     return Promise.reject(error);

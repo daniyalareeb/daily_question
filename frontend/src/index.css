@@ -2,14 +2,24 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
 body {
   margin: 0;
+  padding: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+  width: 100%;
+  position: relative;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 code {
@@ -37,4 +47,43 @@ html {
 *:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
+}
+
+/* Prevent horizontal scrolling */
+#root {
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.App {
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Ensure all containers respect viewport width */
+* {
+  max-width: 100%;
+}
+
+/* Mobile-specific improvements */
+@media (max-width: 600px) {
+  /* Prevent text size adjustment on iOS */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+  }
+  
+  /* Better touch targets */
+  button, a, [role="button"], .MuiButton-root, .MuiIconButton-root {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent horizontal scroll on inputs */
+  input, textarea, select {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
 }

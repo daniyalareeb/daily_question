@@ -106,34 +106,40 @@ function HealthMetricCard({
   return (
     <Card
       sx={{
-        height: 280, // Fixed height for consistency
+        height: { xs: 240, sm: 260, md: 280 }, // Responsive height
         boxShadow: 3,
         bgcolor: config.bgColor,
         border: isWater ? '1px solid #E0E0E0' : 'none',
-        borderRadius: 3,
+        borderRadius: { xs: 2, sm: 3 },
         transition: 'all 0.3s ease',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6,
+          transform: { xs: 'none', sm: 'translateY(-4px)' },
+          boxShadow: { xs: 3, sm: 6 },
         },
       }}
     >
-      <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <CardContent sx={{ 
+        p: { xs: 2, sm: 2.5, md: 3 }, 
+        height: '100%', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        flex: 1 
+      }}>
         {/* Icon */}
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            mb: 2,
+            mb: { xs: 1.5, sm: 2 },
           }}
         >
           <Icon
             sx={{
-              fontSize: 40,
+              fontSize: { xs: 32, sm: 36, md: 40 },
               color: config.iconColor,
             }}
           />
@@ -145,8 +151,9 @@ function HealthMetricCard({
           sx={{
             fontWeight: 'bold',
             textAlign: 'center',
-            mb: 1,
+            mb: { xs: 0.5, sm: 1 },
             color: textColor,
+            fontSize: { xs: '1rem', sm: '1.25rem' },
           }}
         >
           {config.name}
@@ -158,17 +165,24 @@ function HealthMetricCard({
           sx={{
             fontWeight: 'bold',
             textAlign: 'center',
-            mb: 2,
+            mb: { xs: 1.5, sm: 2 },
             color: textColor,
+            fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
           }}
         >
           {value || 'N/A'}
         </Typography>
 
         {/* Chart or Progress */}
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 80 }}>
+        <Box sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          minHeight: { xs: 60, sm: 70, md: 80 } 
+        }}>
           {type === 'sleep' && sleepChartData && (
-            <Box sx={{ width: '100%', height: 70 }}>
+            <Box sx={{ width: '100%', height: { xs: 50, sm: 60, md: 70 } }}>
               <Line
                 data={sleepChartData}
                 options={{
@@ -188,12 +202,12 @@ function HealthMetricCard({
           )}
           
           {type === 'exercise' && (
-            <Box sx={{ width: '100%', px: 1 }}>
+            <Box sx={{ width: '100%', px: { xs: 0.5, sm: 1 } }}>
               <LinearProgress
                 variant="determinate"
                 value={Math.min(progressPercent, 100)}
                 sx={{
-                  height: 10,
+                  height: { xs: 8, sm: 10 },
                   borderRadius: 5,
                   bgcolor: 'rgba(54, 94, 99, 0.2)',
                   '& .MuiLinearProgress-bar': {
@@ -210,7 +224,7 @@ function HealthMetricCard({
               <CircularProgress
                 variant="determinate"
                 value={Math.min(progressPercent, 100)}
-                size={90}
+                size={{ xs: 70, sm: 80, md: 90 }}
                 thickness={5}
                 sx={{
                   color: type === 'food' ? '#8CD1BC' : '#03A9F4',
@@ -234,7 +248,7 @@ function HealthMetricCard({
                   sx={{
                     color: textColor,
                     fontWeight: 'bold',
-                    fontSize: '1rem',
+                    fontSize: { xs: '0.875rem', sm: '1rem' },
                   }}
                 >
                   {Math.round(progressPercent)}%

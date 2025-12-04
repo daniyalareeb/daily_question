@@ -31,7 +31,7 @@ function ProfileSection({ totalReflections, currentStreak, positivityScore, tota
   ];
 
   return (
-    <Grid container spacing={2.5} sx={{ mb: 4 }}>
+    <Grid container spacing={{ xs: 1.5, sm: 2.5 }} sx={{ mb: { xs: 3, sm: 4 } }}>
       {stats.map((stat, index) => (
         <Grid item xs={6} sm={3} key={index}>
           <Box
@@ -39,8 +39,8 @@ function ProfileSection({ totalReflections, currentStreak, positivityScore, tota
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              p: 3,
-              borderRadius: 3,
+              p: { xs: 2, sm: 2.5, md: 3 },
+              borderRadius: { xs: 2, sm: 3 },
               bgcolor: 'white',
               border: '1px solid #E8E8E8',
               boxShadow: '0 2px 8px rgba(54, 94, 99, 0.08)',
@@ -48,30 +48,46 @@ function ProfileSection({ totalReflections, currentStreak, positivityScore, tota
               height: '100%',
               transition: 'all 0.3s ease',
               '&:hover': {
-                transform: 'translateY(-2px)',
-                boxShadow: '0 4px 12px rgba(54, 94, 99, 0.12)',
+                transform: { xs: 'none', sm: 'translateY(-2px)' },
+                boxShadow: { xs: '0 2px 8px rgba(54, 94, 99, 0.08)', sm: '0 4px 12px rgba(54, 94, 99, 0.12)' },
               },
             }}
           >
             <Box
               sx={{
-                width: 56,
-                height: 56,
+                width: { xs: 44, sm: 48, md: 56 },
+                height: { xs: 44, sm: 48, md: 56 },
                 borderRadius: stat.icon === QuestionAnswer ? '8px' : '50%',
                 bgcolor: stat.color,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                mb: 2,
+                mb: { xs: 1.5, sm: 2 },
                 boxShadow: `0 2px 8px ${stat.color}40`,
               }}
             >
-              <stat.icon sx={{ color: 'white', fontSize: 28 }} />
+              <stat.icon sx={{ color: 'white', fontSize: { xs: 22, sm: 26, md: 28 } }} />
             </Box>
-            <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#365E63', mb: 0.5 }}>
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontWeight: 'bold', 
+                color: '#365E63', 
+                mb: 0.5,
+                fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+              }}
+            >
               {stat.value}
             </Typography>
-            <Typography variant="body2" sx={{ color: '#666', fontSize: '0.875rem', fontWeight: 500 }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: '#666', 
+                fontSize: { xs: '0.75rem', sm: '0.875rem' }, 
+                fontWeight: 500,
+                lineHeight: 1.3,
+              }}
+            >
               {stat.label}
             </Typography>
           </Box>

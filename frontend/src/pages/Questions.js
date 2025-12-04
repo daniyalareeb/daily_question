@@ -23,7 +23,9 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Collapse
+  Collapse,
+  useMediaQuery,
+  useTheme
 } from '@mui/material';
 import { Send, ArrowForward, ArrowBack, ExpandMore } from '@mui/icons-material';
 import CompletionScreen from '../components/CompletionScreen';
@@ -31,6 +33,8 @@ import CompletionScreen from '../components/CompletionScreen';
 function Questions() {
   const { questions, loading, error, submitResponses, getTodayStatus } = useQuestions();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // State for current question index and answers
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -550,23 +554,37 @@ function Questions() {
     <Container 
       maxWidth="md" 
       sx={{ 
-        py: { xs: 2, sm: 4 },
-        px: { xs: 2, sm: 3 },
+        py: { xs: 1.5, sm: 3, md: 4 },
+        px: { xs: 1.5, sm: 2, md: 3 },
         transition: 'all 0.3s ease-in-out'
       }}
     >
       {/* Header */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 600, mb: 1, color: '#365E63' }}>
+      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
+        <Typography 
+          variant="h5" 
+          sx={{ 
+            fontWeight: 600, 
+            mb: { xs: 0.5, sm: 1 }, 
+            color: '#365E63',
+            fontSize: { xs: '1.25rem', sm: '1.5rem' },
+          }}
+        >
           Daily Reflection
         </Typography>
-        <Typography variant="body2" sx={{ color: '#666666' }}>
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            color: '#666666',
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+          }}
+        >
           Question {currentIndex + 1} of {questions.length} • {answeredCount} answered
         </Typography>
       </Box>
 
       {/* Progress Bar */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ mb: { xs: 2, sm: 3 } }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
           <Typography variant="body2" color="text.secondary">
             Progress
@@ -579,7 +597,7 @@ function Questions() {
           variant="determinate" 
           value={progress} 
           sx={{ 
-            height: 8, 
+            height: { xs: 6, sm: 8 }, 
             borderRadius: 4,
             backgroundColor: '#CFE0E0',
             '& .MuiLinearProgress-bar': {
@@ -605,17 +623,17 @@ function Questions() {
 
       {/* Question Card */}
       <Card sx={{ 
-        mb: 3, 
+        mb: { xs: 2, sm: 3 }, 
         boxShadow: 2,
         bgcolor: '#F2F9F9',
         border: '1px solid #CFE0E0'
       }}>
-        <CardContent sx={{ p: 4 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <CardContent sx={{ p: { xs: 2.5, sm: 3, md: 4 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 2, sm: 3 } }}>
             <Box
               sx={{
-                width: 48,
-                height: 48,
+                width: { xs: 40, sm: 44, md: 48 },
+                height: { xs: 40, sm: 44, md: 48 },
                 borderRadius: '50%',
                 bgcolor: '#365E63',
                 color: 'white',
@@ -623,20 +641,24 @@ function Questions() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 700,
-                fontSize: '1.2rem',
-                mr: 2,
+                fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+                mr: { xs: 1.5, sm: 2 },
                 flexShrink: 0,
                 boxShadow: 2
               }}
             >
               {currentIndex + 1}
             </Box>
-            <Typography variant="h6" sx={{ 
-              fontWeight: 600, 
-              flex: 1, 
-              lineHeight: 1.5,
-              color: '#365E63'
-            }}>
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                fontWeight: 600, 
+                flex: 1, 
+                lineHeight: 1.5,
+                color: '#365E63',
+                fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' },
+              }}
+            >
               {currentQuestion.text}
             </Typography>
           </Box>
@@ -805,13 +827,22 @@ function Questions() {
       </Card>
 
       {/* Navigation Buttons */}
-      <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+      <Stack 
+        direction="row" 
+        spacing={{ xs: 1.5, sm: 2 }} 
+        sx={{ mb: { xs: 2, sm: 3 } }}
+      >
         <Button
           variant="outlined"
           startIcon={<ArrowBack />}
           onClick={handlePrevious}
           disabled={isFirstQuestion || todaySubmitted}
-          sx={{ flex: 1 }}
+          size={isMobile ? 'small' : 'medium'}
+          sx={{ 
+            flex: 1,
+            py: { xs: 1, sm: 1.25, md: 1.5 },
+            fontSize: { xs: '0.875rem', sm: '1rem' },
+          }}
         >
           Previous
         </Button>
@@ -822,9 +853,10 @@ function Questions() {
             endIcon={submitting ? <CircularProgress size={20} color="inherit" /> : <Send />}
             onClick={handleFinalSubmit}
             disabled={submitting || todaySubmitted || !canProceedToNext()}
+            size={isMobile ? 'small' : 'medium'}
             sx={{ 
               flex: 1,
-              py: 1.5,
+              py: { xs: 1, sm: 1.25, md: 1.5 },
               bgcolor: answeredCount === questions.length ? '#8CD1BC' : '#365E63',
               '&:hover': {
                 bgcolor: answeredCount === questions.length ? '#7BC4D6' : '#3C666C',
@@ -832,7 +864,8 @@ function Questions() {
               '&:disabled': {
                 bgcolor: '#CFE0E0',
                 color: '#999999',
-              }
+              },
+              fontSize: { xs: '0.875rem', sm: '1rem' },
             }}
           >
             {submitting ? 'Submitting...' : 'Submit All Answers'}
@@ -843,9 +876,10 @@ function Questions() {
             endIcon={<ArrowForward />}
             onClick={handleNext}
             disabled={!canProceedToNext() || todaySubmitted}
+            size={isMobile ? 'small' : 'medium'}
             sx={{ 
               flex: 1,
-              py: 1.5,
+              py: { xs: 1, sm: 1.25, md: 1.5 },
               bgcolor: '#365E63',
               '&:hover': {
                 bgcolor: '#3C666C',
@@ -853,7 +887,8 @@ function Questions() {
               '&:disabled': {
                 bgcolor: '#CFE0E0',
                 color: '#999999',
-              }
+              },
+              fontSize: { xs: '0.875rem', sm: '1rem' },
             }}
           >
             Next

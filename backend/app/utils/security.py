@@ -111,3 +111,4 @@ def validate_redirect_url(url: str, allowed_domains: list = None) -> bool:
     
     return False
 
+

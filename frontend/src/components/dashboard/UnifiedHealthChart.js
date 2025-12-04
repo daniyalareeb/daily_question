@@ -280,27 +280,53 @@ function UnifiedHealthChart({ chartData, timeRange = '7D', onTimeRangeChange }) 
       !chartData.labels || 
       !Array.isArray(chartData.labels) ||
       chartData.labels.length === 0) {
-    return (
-      <Card sx={{ boxShadow: 2, borderRadius: 3 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#365E63' }}>
-            Statistics
+  return (
+    <Card sx={{ boxShadow: 2, borderRadius: { xs: 2, sm: 3 } }}>
+      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+        <Typography 
+          variant="h6" 
+          sx={{ 
+            fontWeight: 'bold', 
+            mb: { xs: 1.5, sm: 2 }, 
+            color: '#365E63',
+            fontSize: { xs: '1.1rem', sm: '1.25rem' },
+          }}
+        >
+          Statistics
+        </Typography>
+        <Box sx={{ textAlign: 'center', py: { xs: 3, sm: 4 } }}>
+          <Typography 
+            variant="body2" 
+            color="text.secondary"
+            sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+          >
+            No data available yet. Start tracking your health metrics!
           </Typography>
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Typography variant="body2" color="text.secondary">
-              No data available yet. Start tracking your health metrics!
-            </Typography>
-          </Box>
-        </CardContent>
-      </Card>
-    );
+        </Box>
+      </CardContent>
+    </Card>
+  );
   }
 
   return (
-    <Card sx={{ boxShadow: 3, borderRadius: 3, bgcolor: 'white' }}>
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#365E63' }}>
+    <Card sx={{ boxShadow: 3, borderRadius: { xs: 2, sm: 3 }, bgcolor: 'white' }}>
+      <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          mb: { xs: 2, sm: 3 },
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 },
+        }}>
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              fontWeight: 'bold', 
+              color: '#365E63',
+              fontSize: { xs: '1.1rem', sm: '1.25rem' },
+            }}
+          >
             Statistics
           </Typography>
           <ToggleButtonGroup
@@ -311,9 +337,9 @@ function UnifiedHealthChart({ chartData, timeRange = '7D', onTimeRangeChange }) 
             size="small"
             sx={{
               '& .MuiToggleButton-root': {
-                px: 2,
-                py: 0.5,
-                fontSize: '0.875rem',
+                px: { xs: 1, sm: 1.5, md: 2 },
+                py: { xs: 0.5, sm: 0.5 },
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
                 fontWeight: 600,
                 color: '#666',
                 borderColor: '#E0E0E0',
@@ -344,7 +370,7 @@ function UnifiedHealthChart({ chartData, timeRange = '7D', onTimeRangeChange }) 
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
-        <Box sx={{ height: 400 }}>
+        <Box sx={{ height: { xs: 250, sm: 300, md: 400 }, width: '100%' }}>
           <Line 
             ref={chartRef}
             data={data} 

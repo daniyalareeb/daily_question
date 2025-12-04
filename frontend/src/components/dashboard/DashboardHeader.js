@@ -1,11 +1,13 @@
 import React from 'react';
-import { Box, Typography, Avatar, Button } from '@mui/material';
+import { Box, Typography, Avatar, Button, useMediaQuery, useTheme } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 function DashboardHeader() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleLogout = async () => {
     await logout();
@@ -39,47 +41,82 @@ function DashboardHeader() {
       sx={{
         bgcolor: '#365E63', // Dark teal green
         color: 'white',
-        py: 3,
-        px: { xs: 2, sm: 4, md: 5 },
+        py: { xs: 2, sm: 3 },
+        px: { xs: 2, sm: 3, md: 4, lg: 5 },
         mb: 0,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: { xs: 'flex-start', sm: 'center' },
         justifyContent: 'space-between',
+        flexDirection: { xs: 'column', sm: 'row' },
         flexWrap: 'wrap',
-        gap: 2,
+        gap: { xs: 2, sm: 2 },
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
       }}
     >
       {/* Left side: Avatar and user info */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: { xs: 1.5, sm: 2 },
+        flex: 1,
+        minWidth: 0, // Allow text truncation
+      }}>
         <Avatar
           sx={{
-            width: 56,
-            height: 56,
+            width: { xs: 48, sm: 56 },
+            height: { xs: 48, sm: 56 },
             bgcolor: '#8CD1BC', // Mint green
-            fontSize: '1.5rem',
+            fontSize: { xs: '1.2rem', sm: '1.5rem' },
             fontWeight: 'bold',
             color: '#365E63',
+            flexShrink: 0,
           }}
         >
           {getInitial()}
         </Avatar>
-        <Box>
+        <Box sx={{ minWidth: 0, flex: 1 }}> {/* Allow text truncation */}
           <Typography
             variant="h5"
             sx={{
               fontWeight: 'bold',
               color: 'white',
               mb: 0.5,
+              fontSize: { xs: '1.1rem', sm: '1.5rem' },
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
             }}
           >
             {getDisplayName()}
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.9)' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: { xs: 0.5, sm: 1 }, 
+            flexWrap: 'wrap',
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+          }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.9)',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: { xs: '150px', sm: 'none' },
+              }}
+            >
               {currentUser?.email || ''}
             </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.7)',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                display: { xs: 'none', sm: 'block' },
+              }}
+            >
               | Daily Reflection Tracker
             </Typography>
           </Box>
@@ -87,10 +124,17 @@ function DashboardHeader() {
       </Box>
 
       {/* Right side: Buttons */}
-      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        gap: { xs: 1, sm: 2 }, 
+        flexWrap: 'wrap',
+        width: { xs: '100%', sm: 'auto' },
+        justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+      }}>
         <Button
           variant="contained"
           onClick={handleChangePassword}
+          size={isMobile ? 'small' : 'medium'}
           sx={{
             bgcolor: 'white',
             color: '#365E63',
@@ -99,6 +143,10 @@ function DashboardHeader() {
             },
             fontWeight: 'bold',
             textTransform: 'none',
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            px: { xs: 1.5, sm: 2 },
+            py: { xs: 0.75, sm: 1 },
+            minWidth: { xs: 'auto', sm: '140px' },
           }}
         >
           Change Password
@@ -106,6 +154,7 @@ function DashboardHeader() {
         <Button
           variant="contained"
           onClick={handleLogout}
+          size={isMobile ? 'small' : 'medium'}
           sx={{
             bgcolor: '#8CD1BC', // Mint green
             color: '#365E63',
@@ -114,6 +163,10 @@ function DashboardHeader() {
             },
             fontWeight: 'bold',
             textTransform: 'none',
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            px: { xs: 1.5, sm: 2 },
+            py: { xs: 0.75, sm: 1 },
+            minWidth: { xs: 'auto', sm: '100px' },
           }}
         >
           Logout

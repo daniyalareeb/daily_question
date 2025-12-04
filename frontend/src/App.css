@@ -1,6 +1,9 @@
 .App {
   min-height: 100vh;
   background-color: #F2F9F9; /* Pale cyan-white */
+  width: 100%;
+  overflow-x: hidden;
+  position: relative;
 }
 
 /* Custom scrollbar */
@@ -61,4 +64,77 @@
 
 .loading-pulse {
   animation: pulse 2s infinite;
+}
+
+/* Global mobile optimizations */
+/* Ensure all containers respect viewport */
+.MuiContainer-root {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Prevent horizontal scrolling globally */
+body, html, #root, .App {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Mobile optimizations */
+@media (max-width: 600px) {
+  /* Prevent horizontal scrolling */
+  .App {
+    overflow-x: hidden;
+    width: 100vw;
+    max-width: 100vw;
+  }
+  
+  /* Ensure containers don't overflow */
+  .MuiContainer-root {
+    max-width: 100% !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    width: 100% !important;
+  }
+  
+  /* Prevent card overflow */
+  .MuiCard-root {
+    max-width: 100%;
+    overflow-x: hidden;
+    width: 100%;
+  }
+  
+  /* Better touch targets for mobile */
+  .MuiButton-root {
+    min-height: 44px;
+    padding: 10px 16px;
+    touch-action: manipulation; /* Prevent double-tap zoom */
+  }
+  
+  .MuiIconButton-root {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+    touch-action: manipulation;
+  }
+  
+  /* Disable hover effects on mobile */
+  .MuiCard-root:hover {
+    transform: none;
+  }
+  
+  /* Prevent text selection on buttons (better UX) */
+  button, .MuiButton-root {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  
+  /* Better form inputs on mobile */
+  .MuiTextField-root {
+    width: 100%;
+  }
+  
+  input, textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
 }
